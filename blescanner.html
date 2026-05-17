@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DARTSLIVE BLE Scanner — Phase 1</title>
+  <style>
+    :root {
+      --bg:           #0d1117;
+      --surface:      #161b22;
+      --surface2:     #1c2128;
+      --border:       #30363d;
+      --text:         #e6edf3;
+      --muted:        #8b949e;
+      --accent:       #58a6ff;
+      --green:        #3fb950;
+      --red:          #f85149;
+      --yellow:       #e3b341;
+      --orange:       #db6d28;
+      --purple:       #bc8cff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1.25rem; color: var(--accent); }
+    header p  { color: var(--muted); font-size: 0.8rem; margin-top: 3px; }
+
+    /* ── Banners ── */
+    .banner {
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+    }
+    .banner.warn  { background: #2d1f00; border: 1px solid var(--yellow); color: var(--yellow); }
+    .banner.info  { background: #0d1b2a; border: 1px solid var(--accent);  color: var(--muted);  }
+    .banner.error { background: #2d0d0d; border: 1px solid var(--red);    color: var(--red);    }
+    .banner strong { color: var(--text); display: block; margin-bottom: 3px; }
+    .banner code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; }
+
+    /* ── Controls row ── */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      background: var(--surface);
+      user-select: none;
+    }
+    .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .dot.connecting { background: var(--yellow); animation: blink 0.9s infinite; }
+    .dot.connected  { background: var(--green);  }
+    .dot.error      { background: var(--red);    }
+
+    @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:0.3 } }
+
+    btn, button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+      transition: border-color 0.15s, color 0.15s, opacity 0.15s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+    button.primary  { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+    button.primary:hover:not(:disabled) { filter: brightness(1.15); color: var(--bg); }
+    button.danger   { border-color: var(--red); color: var(--red); }
+    button.danger:hover:not(:disabled) { background: #2d0d0d; }
+
+    label.checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* ── Device panel ── */
+    #device-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    #device-panel h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .dev-fields {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .dev-field label { font-size: 0.72rem; color: var(--muted); display: block; }
+    .dev-field span  { color: var(--accent); font-size: 0.88rem; }
+
+    /* Services tree */
+    .svc-tree { display: flex; flex-direction: column; gap: 6px; }
+    .svc-node {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .svc-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 12px;
+      background: var(--surface2);
+      cursor: pointer;
+      user-select: none;
+    }
+    .svc-header:hover { background: #252c36; }
+    .svc-toggle { color: var(--muted); font-size: 0.7rem; width: 12px; }
+    .svc-uuid   { color: var(--accent); font-size: 0.8rem; flex: 1; word-break: break-all; }
+    .svc-name   { color: var(--muted); font-size: 0.75rem; }
+    .svc-chars  { padding: 0; }
+    .svc-chars[hidden] { display: none; }
+
+    .char-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px 6px 28px;
+      border-top: 1px solid var(--border);
+    }
+    .char-row.notifying { border-left: 3px solid var(--green); padding-left: 25px; }
+    .char-uuid  { color: var(--muted); font-size: 0.78rem; flex: 1; word-break: break-all; }
+    .char-name  { color: var(--muted); font-size: 0.72rem; }
+    .props      { font-size: 0.7rem; color: var(--yellow); }
+    .badge-ok   { font-size: 0.68rem; background: #0f2d18; border: 1px solid var(--green); color: var(--green); border-radius: 4px; padding: 1px 6px; }
+    .badge-err  { font-size: 0.68rem; background: #2d0d0d; border: 1px solid var(--red);   color: var(--red);   border-radius: 4px; padding: 1px 6px; }
+
+    /* ── Log ── */
+    .log-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .log-bar h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .log-bar-right { display: flex; align-items: center; gap: 12px; }
+
+    .log-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      color: var(--muted);
+      text-align: left;
+      padding: 7px 12px;
+      font-weight: normal;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      z-index: 1;
+    }
+    tbody td { padding: 5px 12px; border-bottom: 1px solid #1c2128; vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #1c2128; }
+
+    .c-seq  { color: var(--muted); width: 36px; }
+    .c-time { color: var(--muted); white-space: nowrap; }
+    .c-svc  { color: var(--muted); font-size: 0.7rem; max-width: 160px; word-break: break-all; }
+    .c-char { color: var(--accent); max-width: 160px; word-break: break-all; }
+    .c-hex  { color: var(--green); white-space: pre-wrap; font-size: 0.77rem; }
+    .c-asc  { color: var(--yellow); }
+    .c-dec  { color: var(--muted); font-size: 0.72rem; max-width: 200px; word-break: break-all; }
+    .c-seg  { color: var(--orange); font-weight: bold; }
+    .empty-row td { text-align: center; padding: 40px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>&#127�; DARTSLIVE BLE Scanner</h1>
+    <p>Phase 1 — UUID &amp; payload discovery for dlb0003 / DLHOME-family boards</p>
+  </div>
+</header>
+
+<div id="no-ble-banner" class="banner warn" hidden>
+  <strong>Web Bluetooth not available.</strong>
+  Use <strong>Chrome or Chromium on desktop or Android</strong>. iOS/Safari/Firefox are not supported.
+  The page must be served from <code>localhost</code> or <code>https://</code> — not <code>file://</code>.
+</div>
+
+<div class="banner info">
+  <strong>Quick start</strong>
+  Serve this file: <code>python3 -m http.server 8080</code> then open
+  <code>http://localhost:8080/ble-scanner.html</code> in Chrome.
+  Click <em>Scan &amp; Connect</em>, pick your board from the picker, then throw darts.
+  Raw bytes and decoded segment guesses appear in the log below.
+</div>
+
+<div class="controls">
+  <div class="status-pill">
+    <div class="dot" id="dot"></div>
+    <span id="status-text">Disconnected</span>
+  </div>
+  <button class="primary" id="btn-connect">Scan &amp; Connect</button>
+  <button id="btn-disconnect" disabled>Disconnect</button>
+  <label class="checkbox" style="margin-left:4px">
+    <input type="checkbox" id="chk-all"> Show all BLE devices (not just DARTSLIVE)
+  </label>
+  <button id="btn-clear" style="margin-left:auto">Clear Log</button>
+  <button id="btn-export">Export JSON</button>
+</div>
+
+<div id="device-panel" hidden>
+  <h2>Connected Device</h2>
+  <div class="dev-fields">
+    <div class="dev-field"><label>Name</label><span id="dev-name">—</span></div>
+    <div class="dev-field"><label>Device ID</label><span id="dev-id">—</span></div>
+    <div class="dev-field"><label>Services found</label><span id="dev-svcs">—</span></div>
+    <div class="dev-field"><label>Subscribed chars</label><span id="dev-notifs">—</span></div>
+  </div>
+  <div class="svc-tree" id="svc-tree"></div>
+</div>
+
+<div class="log-bar">
+  <h2>Notification Log</h2>
+  <div class="log-bar-right">
+    <label class="checkbox">
+      <input type="checkbox" id="chk-scroll" checked> Auto-scroll
+    </label>
+    <span id="log-count" style="font-size:0.8rem;color:var(--muted)">0 events</span>
+  </div>
+</div>
+
+<div class="log-wrap" id="log-wrap">
+  <table id="log-table">
+    <thead>
+      <tr>
+        <th class="c-seq">#</th>
+        <th class="c-time">Timestamp</th>
+        <th class="c-svc">Service UUID</th>
+        <th class="c-char">Char UUID</th>
+        <th class="c-hex">Hex bytes</th>
+        <th class="c-asc">ASCII</th>
+        <th class="c-dec">Decimal bytes</th>
+        <th class="c-seg">Segment guess</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+      <tr class="empty-row"><td colspan="8">Connect to a board and throw a dart to see data here.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────
+   OPTIONAL SERVICES
+   Wide net so Chrome grants access to whatever
+   service UUID the dlb0003 actually uses.
+───────────────────────────────────────────── */
+const OPTIONAL_SERVICES = [
+  // Standard GATT profiles (named)
+  'alert_notification','automation_io','battery_service','blood_pressure',
+  'body_composition','bond_management','continuous_glucose_monitoring',
+  'current_time','cycling_power','cycling_speed_and_cadence',
+  'device_information','environmental_sensing','fitness_machine',
+  'generic_access','generic_attribute','glucose','health_thermometer',
+  'heart_rate','http_proxy','human_interface_device','immediate_alert',
+  'indoor_positioning','internet_protocol_support','link_loss',
+  'location_and_navigation','mesh_provisioning','mesh_proxy',
+  'next_dst_change','object_transfer','phone_alert_status','pulse_oximeter',
+  'reconnection_configuration','reference_time_update',
+  'running_speed_and_cadence','scan_parameters','transport_discovery',
+  'tx_power','user_data','weight_scale',
+  // Nordic UART Service
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+  // Microchip Transparent UART
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  // FFF0–FFFF range (common for game/IoT devices)
+  0xfff0,0xfff1,0xfff2,0xfff3,0xfff4,0xfff5,0xfff6,0xfff7,
+  0xfff8,0xfff9,0xfffa,0xfffb,0xfffc,0xfffd,0xfffe,0xffff,
+  // FEE0–FEEF
+  0xfee0,0xfee1,0xfee2,0xfee3,0xfee4,0xfee5,0xfee6,0xfee7,
+  0xfee8,0xfee9,0xfeea,0xfeeb,0xfeec,0xfeed,0xfeee,0xfeef,
+  // FF00–FF1F
+  0xff00,0xff01,0xff02,0xff03,0xff04,0xff05,0xff06,0xff07,
+  0xff08,0xff09,0xff0a,0xff0b,0xff0c,0xff0d,0xff0e,0xff0f,
+  0xff10,0xff11,0xff12,0xff13,0xff14,0xff15,0xff16,0xff17,
+  0xff18,0xff19,0xff1a,0xff1b,0xff1c,0xff1d,0xff1e,0xff1f,
+  // FD00–FD1F
+  0xfd00,0xfd01,0xfd02,0xfd03,0xfd04,0xfd05,0xfd06,0xfd07,
+  0xfd08,0xfd09,0xfd0a,0xfd0b,0xfd0c,0xfd0d,0xfd0e,0xfd0f,
+  // A000–A00F (some Phoenix/DARTSLIVE boards)
+  0xa000,0xa001,0xa002,0xa003,0xa004,0xa005,0xa006,0xa007,
+];
+
+/* ─────────────────────────────────────────────
+   SEGMENT BYTE MAP
+   Derived from community reverse-engineering.
+   Formula (needs board verification):
+     inner single n  →  byte = n         (0x01–0x14)
+     outer single n  →  byte = n + 20    (0x15–0x28)
+     double n        →  byte = n + 40    (0x29–0x3c)
+     triple n        →  byte = n + 60    (0x3d–0x50)
+   Bull bytes are guesses — scanner will reveal them.
+───────────────────────────────────────────── */
+function buildSegmentMap() {
+  const m = new Map();
+  m.set(0x00, { label: 'MISS', score: 0, mult: 0, num: 0 });
+  for (let n = 1; n <= 20; n++) {
+    m.set(n,      { label: `S${n}`,  score: n,     mult: 1, num: n, zone: 'single-in'  });
+    m.set(n + 20, { label: `S${n}`,  score: n,     mult: 1, num: n, zone: 'single-out' });
+    m.set(n + 40, { label: `D${n}`,  score: n * 2, mult: 2, num: n, zone: 'double'     });
+    m.set(n + 60, { label: `T${n}`,  score: n * 3, mult: 3, num: n, zone: 'triple'     });
+  }
+  // Bull — guesses based on pattern continuation; confirm with scanner
+  m.set(0x51, { label: 'BULL?',   score: 25, mult: 1, num: 25, zone: 'bull-out' });
+  m.set(0x52, { label: 'DBULL?',  score: 50, mult: 2, num: 25, zone: 'bull-in'  });
+  return m;
+}
+const SEGMENT_MAP = buildSegmentMap();
+
+function decodeBytes(bytes) {
+  // Try each byte; return segments for any that match known values
+  const hits = [];
+  bytes.forEach((b, i) => {
+    const seg = SEGMENT_MAP.get(b);
+    if (seg && b !== 0) hits.push(`[${i}] ${seg.label}(${seg.score}pts)`);
+  });
+  return hits.length ? hits.join(', ') : '';
+}
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+const state = {
+  device: null,
+  server: null,
+  notifCount: 0,
+  logEntries: [],
+  seq: 0,
+};
+
+/* ─────────────────────────────────────────────
+   DOM
+───────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const dot         = $('dot');
+const statusText  = $('status-text');
+const btnConnect  = $('btn-connect');
+const btnDisconn  = $('btn-disconnect');
+const btnClear    = $('btn-clear');
+const btnExport   = $('btn-export');
+const chkAll      = $('chk-all');
+const chkScroll   = $('chk-scroll');
+const devicePanel = $('device-panel');
+const devName     = $('dev-name');
+const devId       = $('dev-id');
+const devSvcs     = $('dev-svcs');
+const devNotifs   = $('dev-notifs');
+const svcTree     = $('svc-tree');
+const logBody     = $('log-body');
+const logWrap     = $('log-wrap');
+const logCount    = $('log-count');
+
+/* ─────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────── */
+function setStatus(cls, text) {
+  dot.className = `dot ${cls}`;
+  statusText.textContent = text;
+}
+
+function toHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+}
+
+function toAscii(bytes) {
+  return Array.from(bytes).map(b => (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : '.').join('');
+}
+
+function toDecimal(bytes) {
+  return Array.from(bytes).join(' ');
+}
+
+function timestamp() {
+  return new Date().toISOString().replace('T',' ').slice(0,23);
+}
+
+function shortUUID(uuid) {
+  // If it's a standard 128-bit BT UUID, return the 16-bit short form
+  const m = uuid.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/i);
+  return m ? `0x${m[1].toUpperCase()}` : uuid;
+}
+
+/* ─────────────────────────────────────────────
+   LOG
+───────────────────────────────────────────── */
+function clearEmptyRow() {
+  const empty = logBody.querySelector('.empty-row');
+  if (empty) empty.remove();
+}
+
+function addLogEntry(svcUUID, charUUID, dataView) {
+  clearEmptyRow();
+  const bytes = new Uint8Array(dataView.buffer);
+  const entry = {
+    seq:  ++state.seq,
+    time: timestamp(),
+    svc:  svcUUID,
+    char: charUUID,
+    hex:  toHex(bytes),
+    asc:  toAscii(bytes),
+    dec:  toDecimal(bytes),
+    seg:  decodeBytes(bytes),
+    raw:  Array.from(bytes),
+  };
+  state.logEntries.push(entry);
+  logCount.textContent = `${state.seq} event${state.seq !== 1 ? 's' : ''}`;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="c-seq">${entry.seq}</td>
+    <td class="c-time">${entry.time.slice(11)}</td>
+    <td class="c-svc">${shortUUID(entry.svc)}</td>
+    <td class="c-char">${shortUUID(entry.char)}</td>
+    <td class="c-hex">${entry.hex}</td>
+    <td class="c-asc">${entry.asc}</td>
+    <td class="c-dec">${entry.dec}</td>
+    <td class="c-seg">${entry.seg}</td>
+  `;
+  logBody.appendChild(tr);
+
+  if (chkScroll.checked) logWrap.scrollTop = logWrap.scrollHeight;
+}
+
+btnClear.addEventListener('click', () => {
+  state.logEntries = [];
+  state.seq = 0;
+  logBody.innerHTML = '<tr class="empty-row"><td colspan="8">Log cleared — throw a dart to see data.</td></tr>';
+  logCount.textContent = '0 events';
+});
+
+btnExport.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state.logEntries, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dartslive-ble-${Date.now()}.json`;
+  a.click();
+});
+
+/* ─────────────────────────────────────────────
+   SERVICE TREE UI
+───────────────────────────────────────────── */
+function renderServiceTree(services) {
+  svcTree.innerHTML = '';
+  services.forEach(({ svc, name, chars }) => {
+    const node = document.createElement('div');
+    node.className = 'svc-node';
+    const header = document.createElement('div');
+    header.className = 'svc-header';
+    header.innerHTML = `
+      <span class="svc-toggle">▶</span>
+      <span class="svc-uuid">${svc.uuid}</span>
+      ${name ? `<span class="svc-name">(${name})</span>` : ''}
+    `;
+    const charDiv = document.createElement('div');
+    charDiv.className = 'svc-chars';
+    charDiv.hidden = true;
+
+    chars.forEach(({ char, charName, props, status }) => {
+      const row = document.createElement('div');
+      row.className = `char-row${status === 'subscribed' ? ' notifying' : ''}`;
+      row.id = `char-${char.uuid}`;
+      row.innerHTML = `
+        <span class="char-uuid">${char.uuid}</span>
+        ${charName ? `<span class="char-name">(${charName})</span>` : ''}
+        <span class="props">${props}</span>
+        ${status === 'subscribed'  ? '<span class="badge-ok">NOTIFY ✓</span>' : ''}
+        ${status === 'error'       ? '<span class="badge-err">notify failed</span>' : ''}
+      `;
+      charDiv.appendChild(row);
+    });
+
+    header.addEventListener('click', () => {
+      charDiv.hidden = !charDiv.hidden;
+      header.querySelector('.svc-toggle').textContent = charDiv.hidden ? '▶' : '▼';
+    });
+    node.appendChild(header);
+    node.appendChild(charDiv);
+    svcTree.appendChild(node);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   BLE CONNECTION
+───────────────────────────────────────────── */
+async function connect() {
+  try {
+    setStatus('connecting', 'Opening device picker…');
+    btnConnect.disabled = true;
+
+    const opts = {
+      optionalServices: OPTIONAL_SERVICES,
+    };
+    if (chkAll.checked) {
+      opts.acceptAllDevices = true;
+    } else {
+      opts.filters = [
+        { namePrefix: 'DARTSLIVE' },
+        { namePrefix: 'DL-HOME'   },
+        { namePrefix: 'DL'        },
+        { namePrefix: 'PHOENIX'   },
+        { namePrefix: 'Phoenix'   },
+      ];
+      opts.optionalServices = OPTIONAL_SERVICES;
+    }
+
+    const device = await navigator.bluetooth.requestDevice(opts);
+    state.device = device;
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+
+    setStatus('connecting', 'Connecting to GATT…');
+    const server = await device.gatt.connect();
+    state.server = server;
+
+    devName.textContent = device.name || '(no name)';
+    devId.textContent   = device.id.slice(0, 16) + '…';
+    devicePanel.hidden  = false;
+    btnDisconn.disabled = false;
+    btnConnect.disabled = false;
+
+    setStatus('connecting', 'Enumerating services…');
+    await enumerateServices(server);
+    setStatus('connected', `Connected — ${state.notifCount} char(s) subscribed`);
+
+  } catch (err) {
+    if (err.name === 'NotFoundError' || err.name === 'AbortError') {
+      setStatus('', 'Cancelled');
+    } else {
+      setStatus('error', `Error: ${err.message}`);
+      console.error('[BLE]', err);
+    }
+    btnConnect.disabled = false;
+  }
+}
+
+async function enumerateServices(server) {
+  let allServices;
+  try {
+    allServices = await server.getPrimaryServices();
+  } catch (err) {
+    console.warn('[BLE] getPrimaryServices failed:', err);
+    allServices = [];
+  }
+
+  devSvcs.textContent = allServices.length;
+
+  const serviceData = [];
+  let totalNotified  = 0;
+
+  for (const svc of allServices) {
+    let chars = [];
+    try {
+      chars = await svc.getCharacteristics();
+    } catch (err) {
+      console.warn(`[BLE] getCharacteristics failed for ${svc.uuid}:`, err);
+    }
+
+    const charData = [];
+    for (const char of chars) {
+      const props = Object.entries(char.properties)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(' ');
+
+      let status = 'none';
+      if (char.properties.notify || char.properties.indicate) {
+        try {
+          await char.startNotifications();
+          char.addEventListener('characteristicvaluechanged', (e) => {
+            addLogEntry(svc.uuid, char.uuid, e.target.value);
+          });
+          status = 'subscribed';
+          totalNotified++;
+        } catch (err) {
+          console.warn(`[BLE] startNotifications failed for ${char.uuid}:`, err);
+          status = 'error';
+        }
+      }
+
+      charData.push({ char, charName: getCharName(char.uuid), props, status });
+    }
+
+    serviceData.push({ svc, name: getSvcName(svc.uuid), chars: charData });
+  }
+
+  state.notifCount = totalNotified;
+  devNotifs.textContent = totalNotified;
+  renderServiceTree(serviceData);
+
+  // Expand first service by default to orient the user
+  const firstHeader = svcTree.querySelector('.svc-header');
+  if (firstHeader) firstHeader.click();
+}
+
+function onDisconnected() {
+  setStatus('error', 'Disconnected (board went away)');
+  btnDisconn.disabled = true;
+  state.server = null;
+}
+
+async function disconnect() {
+  if (state.device && state.device.gatt.connected) {
+    state.device.gatt.disconnect();
+  }
+  setStatus('', 'Disconnected');
+  btnDisconn.disabled = true;
+  devicePanel.hidden  = true;
+  svcTree.innerHTML   = '';
+  state.notifCount    = 0;
+  state.device        = null;
+  state.server        = null;
+}
+
+/* ─────────────────────────────────────────────
+   GATT NAME LOOKUPS (common UUIDs)
+───────────────────────────────────────────── */
+const KNOWN_SVCS = {
+  '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
+  '0000180f-0000-1000-8000-00805f9b34fb': 'Battery Service',
+  '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
+  '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
+  '0000fff0-0000-1000-8000-00805f9b34fb': 'Vendor FFF0',
+  '0000fee0-0000-1000-8000-00805f9b34fb': 'Vendor FEE0',
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e': 'Nordic UART',
+};
+
+const KNOWN_CHARS = {
+  '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
+  '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
+  '00002a19-0000-1000-8000-00805f9b34fb': 'Battery Level',
+  '00002a24-0000-1000-8000-00805f9b34fb': 'Model Number',
+  '00002a25-0000-1000-8000-00805f9b34fb': 'Serial Number',
+  '00002a27-0000-1000-8000-00805f9b34fb': 'Hardware Rev',
+  '00002a28-0000-1000-8000-00805f9b34fb': 'Software Rev',
+  '00002a29-0000-1000-8000-00805f9b34fb': 'Manufacturer',
+  '6e400002-b5a3-f393-e0a9-e50e24dcca9e': 'NUS RX',
+  '6e400003-b5a3-f393-e0a9-e50e24dcca9e': 'NUS TX',
+};
+
+function getSvcName(uuid)  { return KNOWN_SVCS[uuid]  || ''; }
+function getCharName(uuid) { return KNOWN_CHARS[uuid] || ''; }
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+if (!navigator.bluetooth) {
+  $('no-ble-banner').hidden = false;
+  btnConnect.disabled = true;
+}
+
+btnConnect.addEventListener('click', connect);
+btnDisconn.addEventListener('click', disconnect);
+</script>
+</body>
+</html>
