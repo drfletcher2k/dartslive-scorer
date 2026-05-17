@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DartsLive Scorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,6 +16,7 @@
      ============================================================ -->
 <div id="screen-setup" class="screen active">
   <div class="ble-bar">
+    <img src="logo.png" alt="" class="ble-logo" onerror="this.style.display='none'">
     <div class="ble-dot" id="setup-ble-dot"></div>
     <span class="ble-status" id="setup-ble-status">Not connected</span>
     <button id="setup-ble-connect">Connect</button>
@@ -20,6 +24,9 @@
   </div>
   <div class="setup-body">
     <div class="setup-inner">
+      <div class="setup-logo">
+        <img src="logo.png" alt="The Fletchers" class="setup-logo-img" onerror="this.style.display='none'">
+      </div>
       <div class="setup-title">DARTSLIVE SCORER</div>
 
       <!-- Resume banner -->
@@ -71,6 +78,7 @@
      ============================================================ -->
 <div id="screen-01" class="screen">
   <div class="ble-bar">
+    <img src="logo.png" alt="" class="ble-logo" onerror="this.style.display='none'">
     <div class="ble-dot" id="g01-ble-dot"></div>
     <span class="ble-status" id="g01-ble-status">Not connected</span>
     <button id="g01-ble-connect">Connect</button>
@@ -78,6 +86,12 @@
   </div>
 
   <div class="game01-layout">
+    <!-- Persistent now-throwing bar -->
+    <div class="now-throwing-bar" id="now-throwing-bar-01">
+      <span class="ntb-label">NOW THROWING</span>
+      <span class="ntb-name" id="ntb-name-01">—</span>
+    </div>
+
     <!-- Player cards -->
     <div class="player-cards" id="player-cards-01"></div>
 
@@ -104,9 +118,9 @@
         </div>
         <div class="turn-total-line" id="turn-total-01">Turn total: <span>0</span></div>
         <div class="turn-controls">
-          <button class="btn-undo"   id="btn-undo-01">Undo</button>
-          <button class="btn-skip"   id="btn-skip-01">Skip</button>
-          <button class="btn-manual" id="btn-manual-01">Manual</button>
+          <button class="btn-undo"    id="btn-undo-01">Undo</button>
+          <button class="btn-skip"    id="btn-skip-01">Skip</button>
+          <button class="btn-manual"  id="btn-manual-01">Manual</button>
           <button class="btn-newgame" id="btn-newgame-01">Setup</button>
         </div>
       </div>
@@ -124,10 +138,17 @@
      ============================================================ -->
 <div id="screen-cricket" class="screen">
   <div class="ble-bar">
+    <img src="logo.png" alt="" class="ble-logo" onerror="this.style.display='none'">
     <div class="ble-dot" id="ckt-ble-dot"></div>
     <span class="ble-status" id="ckt-ble-status">Not connected</span>
     <button id="ckt-ble-connect">Connect</button>
     <button id="ckt-ble-disconnect" style="display:none">Disconnect</button>
+  </div>
+
+  <!-- Persistent now-throwing bar -->
+  <div class="now-throwing-bar" id="now-throwing-bar-ckt">
+    <span class="ntb-label">NOW THROWING</span>
+    <span class="ntb-name" id="ntb-name-ckt">—</span>
   </div>
 
   <div class="cricket-layout">
@@ -212,6 +233,7 @@
      WIN OVERLAY
      ============================================================ -->
 <div class="win-overlay" id="win-overlay">
+  <div id="win-particles"></div>
   <div class="win-trophy">🎯</div>
   <div class="win-title">Winner!</div>
   <div class="win-name"  id="win-name">—</div>
@@ -225,6 +247,15 @@
 <!-- ============================================================
      TOAST CONTAINER
      ============================================================ -->
+<!-- ============================================================
+     TURN ANNOUNCEMENT OVERLAY
+     ============================================================ -->
+<div id="turn-announcement" class="turn-announcement">
+  <div class="turn-ann-label">NOW THROWING</div>
+  <div class="turn-ann-name" id="turn-ann-name">—</div>
+  <div class="turn-ann-sub">Tap to dismiss</div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <!-- ============================================================
@@ -236,6 +267,16 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
+// Player colors — pulled from The Fletchers logo (red + blue + variants)
+// ---------------------------------------------------------------------------
+const PLAYER_COLORS = [
+  { color: '#E83535', glow: 'rgba(232,53,53,0.45)',   dim: 'rgba(232,53,53,0.09)'   }, // logo red
+  { color: '#3B7EE8', glow: 'rgba(59,126,232,0.45)',  dim: 'rgba(59,126,232,0.09)'  }, // logo blue
+  { color: '#FF6B6B', glow: 'rgba(255,107,107,0.45)', dim: 'rgba(255,107,107,0.09)' }, // light red
+  { color: '#5AB8F5', glow: 'rgba(90,184,245,0.45)',  dim: 'rgba(90,184,245,0.09)'  }, // sky blue
+];
+
+// ---------------------------------------------------------------------------
 // App state
 // ---------------------------------------------------------------------------
 const app = {
@@ -245,9 +286,34 @@ const app = {
   players: ['Player 1', 'Player 2'],
   doubleIn: false,
   doubleOut: true,
+  _prevActiveCkt: -1,
 };
 
 const LS_KEY = 'dartslive-scorer-game';
+
+// ---------------------------------------------------------------------------
+// Turn Announcement Overlay
+// ---------------------------------------------------------------------------
+let _turnAnnTimeout = null;
+
+function showTurnAnnouncement(playerName, playerIdx) {
+  // Don't overlay the win screen
+  if (document.getElementById('win-overlay').classList.contains('visible')) return;
+  const el = document.getElementById('turn-announcement');
+  if (!el) return;
+  document.getElementById('turn-ann-name').textContent = playerName;
+  const pc = PLAYER_COLORS[playerIdx !== undefined ? playerIdx % PLAYER_COLORS.length : 0];
+  el.style.setProperty('--ann-color', pc.color);
+  el.style.setProperty('--ann-glow', pc.glow);
+  el.classList.remove('visible');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add('visible');
+  if (_turnAnnTimeout) clearTimeout(_turnAnnTimeout);
+  _turnAnnTimeout = setTimeout(() => {
+    el.classList.remove('visible');
+    _turnAnnTimeout = null;
+  }, 2400);
+}
 
 // ---------------------------------------------------------------------------
 // BLE
@@ -403,6 +469,7 @@ function renderPlayerInputs() {
 }
 
 function startGame() {
+  app._prevActiveCkt = -1;
   // Read current player names from inputs
   const inputs = document.querySelectorAll('#player-list input[type="text"]');
   app.players = Array.from(inputs).map((inp, i) => inp.value.trim() || ('Player ' + (i + 1)));
@@ -487,6 +554,10 @@ function renderGame01() {
 function updatePlayerCards01() {
   const s = app.game.state;
   const container = document.getElementById('player-cards-01');
+
+  // Mark phase on container for CSS dimming rule
+  container.dataset.phase = s.phase;
+
   // Rebuild if player count changed, otherwise update in place
   if (container.children.length !== s.players.length) {
     container.innerHTML = '';
@@ -510,8 +581,26 @@ function updatePlayerCards01() {
   s.players.forEach((p, i) => {
     const card = document.getElementById('card-01-' + i);
     if (!card) return;
-    card.classList.toggle('active', i === s.currentPlayerIndex && s.phase !== 'won');
+
+    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    card.style.setProperty('--pc',    pc.color);
+    card.style.setProperty('--pcg',   pc.glow);
+    card.style.setProperty('--pcdim', pc.dim);
+
+    const wasActive = card.classList.contains('active');
+    const isActive  = i === s.currentPlayerIndex && s.phase !== 'won';
+
+    card.classList.toggle('active', isActive);
     card.classList.toggle('winner', s.winner === i);
+
+    // Trigger switch animation when spotlight moves to this card
+    if (isActive && !wasActive && s.phase !== 'won') {
+      card.classList.remove('player-switched');
+      void card.offsetWidth; // force reflow to restart animation
+      card.classList.add('player-switched');
+      setTimeout(() => card.classList.remove('player-switched'), 750);
+      showTurnAnnouncement(p.name, i);
+    }
 
     card.querySelector('.card-name').textContent = p.name;
     card.querySelector('.card-score').textContent = p.score;
@@ -523,6 +612,30 @@ function updatePlayerCards01() {
       contrib.textContent = '';
     }
   });
+
+  // Update persistent NOW THROWING bar
+  const ntbBar  = document.getElementById('now-throwing-bar-01');
+  const ntbName = document.getElementById('ntb-name-01');
+  if (ntbBar && ntbName) {
+    const lbl = ntbBar.querySelector('.ntb-label');
+    if (s.phase === 'won' && s.winner !== null) {
+      if (lbl) lbl.textContent = 'WINNER';
+      ntbName.textContent = s.players[s.winner].name;
+      ntbBar.classList.add('game-over');
+      const wpc = PLAYER_COLORS[s.winner % PLAYER_COLORS.length];
+      ntbBar.style.setProperty('--pc',    wpc.color);
+      ntbBar.style.setProperty('--pcg',   wpc.glow);
+      ntbBar.style.setProperty('--pcdim', wpc.dim);
+    } else {
+      if (lbl) lbl.textContent = 'NOW THROWING';
+      ntbName.textContent = s.players[s.currentPlayerIndex].name;
+      ntbBar.classList.remove('game-over');
+      const apc = PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length];
+      ntbBar.style.setProperty('--pc',    apc.color);
+      ntbBar.style.setProperty('--pcg',   apc.glow);
+      ntbBar.style.setProperty('--pcdim', apc.dim);
+    }
+  }
 }
 
 function updateDartBoxes() {
@@ -536,8 +649,13 @@ function updateDartBoxes() {
     const labelEl = box.querySelector('.dart-label');
     const scoreEl = box.querySelector('.dart-score');
 
-    // Remove all modifier classes
+    // Track previous fill state for landing animation
+    const wasFilled = box.dataset.filled === '1';
+
+    // Remove all modifier classes (keep dart-landed if mid-animation)
+    const wasLanding = box.classList.contains('dart-landed');
     box.className = 'dart-box';
+    if (wasLanding) box.classList.add('dart-landed');
 
     if (dart) {
       const seg = dart.segment;
@@ -564,6 +682,16 @@ function updateDartBoxes() {
         box.classList.add('next-slot');
       }
     }
+
+    // Trigger landing pop when a new dart appears
+    const isNowFilled = !!dart;
+    if (isNowFilled && !wasFilled) {
+      box.classList.remove('dart-landed');
+      void box.offsetWidth; // force reflow
+      box.classList.add('dart-landed');
+      setTimeout(() => box.classList.remove('dart-landed'), 480);
+    }
+    box.dataset.filled = isNowFilled ? '1' : '0';
   }
 }
 
@@ -587,6 +715,13 @@ function updateHistory01() {
   entries.forEach(entry => {
     const el = document.createElement('div');
     el.className = 'history-entry' + (entry.wasBust ? ' h-bust' : '');
+
+    const pIdx = s.players.findIndex(p => p.name === entry.playerName);
+    if (pIdx >= 0) {
+      const pc = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+      el.style.borderLeft = '3px solid ' + pc.color;
+      el.style.background  = pc.dim;
+    }
 
     const dartLabels = entry.darts.map(d => d.segment.label).join('  ');
     const turnTotal  = entry.darts.reduce((sum, d) => sum + (d.counted ? d.segment.score : 0), 0);
@@ -651,10 +786,15 @@ function updateCricketGrid() {
   const thead = document.getElementById('cricket-thead');
   thead.innerHTML = '';
   const hrow = document.createElement('tr');
-  hrow.innerHTML = '<th></th>' +
-    s.players.map((p, i) =>
-      `<th class="${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${escHtml(p.name)}</th>`
-    ).join('');
+  const headerCells = s.players.map((p, i) => {
+    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
+    const style = isActive
+      ? `color:${pc.color};text-shadow:0 0 12px ${pc.glow};border-bottom:2px solid ${pc.color}`
+      : '';
+    return `<th style="${style}">${escHtml(p.name)}</th>`;
+  }).join('');
+  hrow.innerHTML = '<th></th>' + headerCells;
   thead.appendChild(hrow);
 
   // Build body rows
@@ -667,22 +807,27 @@ function updateCricketGrid() {
     if (closed) tr.classList.add('closed-globally');
 
     const label = n === 25 ? 'Bull' : String(n);
-    tr.innerHTML = `<td class="num-col">${label}</td>` +
-      s.players.map((p, i) => {
-        const m = Math.min(p.marks[n], 3);   // display cap at 3
-        const rawMarks = p.marks[n];
-        return `<td class="marks-cell ${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${GameCricket.marksDisplay(rawMarks)}</td>`;
-      }).join('');
+    const markCells = s.players.map((p, i) => {
+      const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+      const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
+      const style = isActive ? `background:${pc.dim};color:${pc.color}` : '';
+      const rawMarks = p.marks[n];
+      return `<td class="marks-cell" style="${style}">${GameCricket.marksDisplay(rawMarks)}</td>`;
+    }).join('');
+    tr.innerHTML = `<td class="num-col">${label}</td>` + markCells;
     tbody.appendChild(tr);
   });
 
   // Score row
   const scoreRow = document.createElement('tr');
   scoreRow.className = 'score-row';
-  scoreRow.innerHTML = '<td>PTS</td>' +
-    s.players.map((p, i) =>
-      `<td class="${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${p.score}</td>`
-    ).join('');
+  const scoreCells = s.players.map((p, i) => {
+    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
+    const style = isActive ? `color:${pc.color};font-weight:900` : '';
+    return `<td style="${style}">${p.score}</td>`;
+  }).join('');
+  scoreRow.innerHTML = '<td>PTS</td>' + scoreCells;
   tbody.appendChild(scoreRow);
 }
 
@@ -694,14 +839,52 @@ function updateCricketSide() {
   // Current player label
   const lbl = document.getElementById('ckt-turn-label');
   if (s.phase !== 'won') {
-    lbl.textContent = s.players[s.currentPlayerIndex].name + "'s Turn";
+    const activeIdx = s.currentPlayerIndex;
+    const apc = PLAYER_COLORS[activeIdx % PLAYER_COLORS.length];
+    lbl.textContent = s.players[activeIdx].name + "'s Turn";
+    lbl.style.color = apc.color;
+    lbl.style.textShadow = '0 0 16px ' + apc.glow;
   } else {
     lbl.textContent = 'Game Over';
+    lbl.style.color = '';
+    lbl.style.textShadow = '';
+  }
+
+  // Detect player change → trigger turn announcement
+  if (s.phase !== 'won' && s.currentPlayerIndex !== app._prevActiveCkt) {
+    showTurnAnnouncement(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex);
+    app._prevActiveCkt = s.currentPlayerIndex;
+  }
+
+  // Update persistent NOW THROWING bar
+  const cktNtbBar  = document.getElementById('now-throwing-bar-ckt');
+  const cktNtbName = document.getElementById('ntb-name-ckt');
+  if (cktNtbBar && cktNtbName) {
+    const cktLbl = cktNtbBar.querySelector('.ntb-label');
+    if (s.phase === 'won' && s.winner !== null) {
+      if (cktLbl) cktLbl.textContent = 'WINNER';
+      cktNtbName.textContent = s.players[s.winner].name;
+      cktNtbBar.classList.add('game-over');
+      const wpc = PLAYER_COLORS[s.winner % PLAYER_COLORS.length];
+      cktNtbBar.style.setProperty('--pc',    wpc.color);
+      cktNtbBar.style.setProperty('--pcg',   wpc.glow);
+      cktNtbBar.style.setProperty('--pcdim', wpc.dim);
+    } else {
+      if (cktLbl) cktLbl.textContent = 'NOW THROWING';
+      cktNtbName.textContent = s.players[s.currentPlayerIndex].name;
+      cktNtbBar.classList.remove('game-over');
+      const apc = PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length];
+      cktNtbBar.style.setProperty('--pc',    apc.color);
+      cktNtbBar.style.setProperty('--pcg',   apc.glow);
+      cktNtbBar.style.setProperty('--pcdim', apc.dim);
+    }
   }
 
   // Dart chips
   for (let i = 0; i < 3; i++) {
     const chip = document.getElementById('ckt-chip-' + i);
+    const wasFilled = chip.dataset.filled === '1';
+
     chip.className = 'cricket-dart-chip';
     const dart = turn.darts[i];
     if (dart) {
@@ -718,6 +901,14 @@ function updateCricketSide() {
         chip.classList.add('next-slot');
       }
     }
+
+    // Landing pop animation
+    const isNowFilled = !!dart;
+    if (isNowFilled && !wasFilled) {
+      chip.classList.add('dart-landed');
+      setTimeout(() => chip.classList.remove('dart-landed'), 480);
+    }
+    chip.dataset.filled = isNowFilled ? '1' : '0';
   }
 
   // History
@@ -726,6 +917,12 @@ function updateCricketSide() {
   s.history.slice(0, 9).forEach(entry => {
     const el = document.createElement('div');
     el.className = 'history-entry';
+    const pIdx = s.players.findIndex(p => p.name === entry.playerName);
+    if (pIdx >= 0) {
+      const pc = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+      el.style.borderLeft = '3px solid ' + pc.color;
+      el.style.background  = pc.dim;
+    }
     const dartLabels = entry.darts.map(d => d.segment.label).join('  ');
     const pts = entry.darts.reduce((sum, d) => sum + (d.pointsScored || 0), 0);
     el.innerHTML = `
@@ -759,12 +956,30 @@ function handleDart(segment) {
     if (result.win) {
       const winnerName = app.game.state.players[app.game.state.winner].name;
       showWin(winnerName);
+    } else {
+      // Big-score celebration after the 3rd dart
+      const turn = app.game.state.currentTurn;
+      if (turn.dartCount >= 3 && !result.bust) {
+        const turnTotal = turn.darts.reduce(
+          (sum, d) => sum + (d.counted ? d.segment.score : 0), 0
+        );
+        if (turnTotal === 180) {
+          showToast('TON-80 !!!', 'epic', 4000);
+          document.body.classList.add('epic-flash');
+          setTimeout(() => document.body.classList.remove('epic-flash'), 900);
+        } else if (turnTotal >= 100) {
+          showToast('TON+  ' + turnTotal, 'epic', 2500);
+        }
+      }
     }
+
   } else if (app.game instanceof GameCricket) {
     const result = app.game.throwDart(segment);
     renderCricket();
 
-    if (result.pointsScored > 0) {
+    if (result.pointsScored >= 50) {
+      showToast('+' + result.pointsScored + ' !!', 'epic', 2200);
+    } else if (result.pointsScored > 0) {
       showToast('+' + result.pointsScored, 'good', 1500);
     }
     if (result.win) {
@@ -884,11 +1099,33 @@ function initManualModal() {
 }
 
 // ---------------------------------------------------------------------------
-// Win overlay
+// Win overlay + particle celebration
 // ---------------------------------------------------------------------------
+function spawnWinParticles() {
+  const container = document.getElementById('win-particles');
+  if (!container) return;
+  container.innerHTML = '';
+  const colors = ['#ffcc00', '#ff8c00', '#00b4e0', '#00d97e', '#ff2055', '#a855f7', '#ffffff'];
+  for (let i = 0; i < 55; i++) {
+    const p = document.createElement('div');
+    p.className = 'win-particle';
+    const size = 4 + Math.random() * 9;
+    p.style.cssText =
+      'left:'               + (Math.random() * 100)       + '%;' +
+      'background:'         + colors[i % colors.length]   + ';'  +
+      'animation-delay:'    + (Math.random() * 2.4)        + 's;' +
+      'animation-duration:' + (1.5 + Math.random() * 2.5) + 's;' +
+      'width:'              + size                         + 'px;' +
+      'height:'             + size                         + 'px;' +
+      'border-radius:'      + (Math.random() > 0.5 ? '50%' : '3px') + ';';
+    container.appendChild(p);
+  }
+}
+
 function showWin(playerName) {
   document.getElementById('win-name').textContent = playerName;
   document.getElementById('win-overlay').classList.add('visible');
+  spawnWinParticles();
 }
 
 function initWinOverlay() {
@@ -901,13 +1138,13 @@ function initWinOverlay() {
 
   document.getElementById('btn-win-rematch').addEventListener('click', () => {
     document.getElementById('win-overlay').classList.remove('visible');
-    // Restart same game config
     startRematch();
   });
 }
 
 function startRematch() {
   if (!app.game) return;
+  app._prevActiveCkt = -1;
   const s = app.game.state;
   const playerNames = s.players.map(p => p.name);
 
@@ -952,7 +1189,6 @@ function loadSavedGame() {
 
 function showResumeBanner(saved) {
   const banner = document.getElementById('resume-banner');
-  // Show the type of game saved
   let desc = saved.type === 'Game01'
     ? (saved.options.startScore || '?') + ' game'
     : 'Cricket game';
@@ -968,7 +1204,6 @@ function showToast(msg, type = 'info', ms = 2000) {
   const toast = document.createElement('div');
   toast.className = 'toast ' + type;
   toast.textContent = msg;
-  // Override animation duration to match ms param
   const fadeMs = 300;
   const holdMs = ms - fadeMs;
   toast.style.animation =
@@ -998,6 +1233,12 @@ window.addEventListener('DOMContentLoaded', () => {
   initCricketScreen();
   initManualModal();
   initWinOverlay();
+
+  // Tap anywhere on the turn announcement to dismiss early
+  document.getElementById('turn-announcement').addEventListener('click', () => {
+    document.getElementById('turn-announcement').classList.remove('visible');
+    if (_turnAnnTimeout) { clearTimeout(_turnAnnTimeout); _turnAnnTimeout = null; }
+  });
 
   const saved = loadSavedGame();
   if (saved && saved.state && saved.state.phase !== 'won') {
