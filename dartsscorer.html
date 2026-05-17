@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DartsLive Scorer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     SETUP SCREEN
+     ============================================================ -->
+<div id="screen-setup" class="screen active">
+  <div class="ble-bar">
+    <div class="ble-dot" id="setup-ble-dot"></div>
+    <span class="ble-status" id="setup-ble-status">Not connected</span>
+    <button id="setup-ble-connect">Connect</button>
+    <button id="setup-ble-disconnect" style="display:none">Disconnect</button>
+  </div>
+  <div class="setup-body">
+    <div class="setup-inner">
+      <div class="setup-title">DARTSLIVE SCORER</div>
+
+      <!-- Resume banner -->
+      <div class="resume-banner" id="resume-banner">
+        <span>You have a game in progress</span>
+        <button class="btn-resume" id="btn-resume">Resume</button>
+        <button id="btn-discard-saved">New Game</button>
+      </div>
+
+      <!-- Game type -->
+      <div>
+        <div class="setup-section-label">Game Type</div>
+        <div class="game-type-row">
+          <button class="game-type-btn" data-type="301">301</button>
+          <button class="game-type-btn active" data-type="501">501</button>
+          <button class="game-type-btn" data-type="701">701</button>
+          <button class="game-type-btn" data-type="Cricket">Cricket</button>
+        </div>
+      </div>
+
+      <!-- Players -->
+      <div>
+        <div class="setup-section-label">Players</div>
+        <div class="player-list" id="player-list"></div>
+        <button class="add-player-btn" id="add-player-btn" style="margin-top:8px">+ Add Player</button>
+      </div>
+
+      <!-- 01 options -->
+      <div id="options-01-section">
+        <div class="setup-section-label">01 Options</div>
+        <div class="options-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-double-in" /> Double In
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-double-out" checked /> Double Out
+          </label>
+        </div>
+      </div>
+
+      <!-- Start -->
+      <button class="start-btn" id="start-btn">Start Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     01 GAME SCREEN
+     ============================================================ -->
+<div id="screen-01" class="screen">
+  <div class="ble-bar">
+    <div class="ble-dot" id="g01-ble-dot"></div>
+    <span class="ble-status" id="g01-ble-status">Not connected</span>
+    <button id="g01-ble-connect">Connect</button>
+    <button id="g01-ble-disconnect" style="display:none">Disconnect</button>
+  </div>
+
+  <div class="game01-layout">
+    <!-- Player cards -->
+    <div class="player-cards" id="player-cards-01"></div>
+
+    <!-- Bust banner -->
+    <div class="bust-banner" id="bust-banner">BUST</div>
+
+    <!-- Turn area -->
+    <div class="turn-area">
+      <!-- Left: dart boxes + controls -->
+      <div class="turn-left">
+        <div class="dart-boxes" id="dart-boxes-01">
+          <div class="dart-box empty" id="dart-box-0">
+            <span class="dart-label">—</span>
+            <span class="dart-score">·</span>
+          </div>
+          <div class="dart-box empty" id="dart-box-1">
+            <span class="dart-label">—</span>
+            <span class="dart-score">·</span>
+          </div>
+          <div class="dart-box empty" id="dart-box-2">
+            <span class="dart-label">—</span>
+            <span class="dart-score">·</span>
+          </div>
+        </div>
+        <div class="turn-total-line" id="turn-total-01">Turn total: <span>0</span></div>
+        <div class="turn-controls">
+          <button class="btn-undo"   id="btn-undo-01">Undo</button>
+          <button class="btn-skip"   id="btn-skip-01">Skip</button>
+          <button class="btn-manual" id="btn-manual-01">Manual</button>
+          <button class="btn-newgame" id="btn-newgame-01">Setup</button>
+        </div>
+      </div>
+
+      <!-- Right: history sidebar -->
+      <div class="history-sidebar" id="history-sidebar-01">
+        <div class="history-sidebar-title">Recent Turns</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CRICKET SCREEN
+     ============================================================ -->
+<div id="screen-cricket" class="screen">
+  <div class="ble-bar">
+    <div class="ble-dot" id="ckt-ble-dot"></div>
+    <span class="ble-status" id="ckt-ble-status">Not connected</span>
+    <button id="ckt-ble-connect">Connect</button>
+    <button id="ckt-ble-disconnect" style="display:none">Disconnect</button>
+  </div>
+
+  <div class="cricket-layout">
+    <!-- Grid: table -->
+    <div class="cricket-grid">
+      <div class="cricket-table-wrap">
+        <table class="cricket-table" id="cricket-table">
+          <thead id="cricket-thead"></thead>
+          <tbody id="cricket-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="cricket-side">
+      <div class="cricket-side-section">
+        <div class="cricket-side-label" id="ckt-turn-label">Turn</div>
+        <div class="cricket-turn-darts" id="ckt-turn-darts">
+          <div class="cricket-dart-chip" id="ckt-chip-0">—</div>
+          <div class="cricket-dart-chip" id="ckt-chip-1">—</div>
+          <div class="cricket-dart-chip" id="ckt-chip-2">—</div>
+        </div>
+      </div>
+
+      <div class="cricket-side-section" style="flex:1;overflow:hidden">
+        <div class="cricket-side-label">Recent Turns</div>
+        <div class="cricket-side-history" id="ckt-history"></div>
+      </div>
+
+      <div class="cricket-controls">
+        <div class="ctrl-row">
+          <button class="btn-undo"   id="btn-undo-ckt">Undo</button>
+          <button class="btn-skip"   id="btn-skip-ckt">Skip</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="btn-manual" id="btn-manual-ckt">Manual</button>
+          <button class="btn-newgame" id="btn-newgame-ckt">Setup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MANUAL ENTRY MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="manual-modal">
+  <div class="modal-box">
+    <div class="modal-title">MANUAL ENTRY</div>
+
+    <!-- Multiplier (hidden for bull direct buttons) -->
+    <div class="multiplier-row" id="mult-row">
+      <button class="mult-btn active" data-mult="1">Single</button>
+      <button class="mult-btn"        data-mult="2">Double</button>
+      <button class="mult-btn"        data-mult="3">Triple</button>
+    </div>
+
+    <!-- Number grid 1–20 -->
+    <div class="number-grid" id="number-grid"></div>
+
+    <!-- Bull buttons -->
+    <div class="bull-row">
+      <button id="btn-bull-outer">Bull (25)</button>
+      <button id="btn-bull-inner">DBull (50)</button>
+    </div>
+
+    <!-- Preview -->
+    <div class="manual-preview" id="manual-preview">
+      <span class="preview-label">—</span>
+      <span class="preview-score"></span>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button class="btn-throw"  id="btn-modal-throw"  disabled>Throw</button>
+      <button class="btn-cancel" id="btn-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     WIN OVERLAY
+     ============================================================ -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-trophy">🎯</div>
+  <div class="win-title">Winner!</div>
+  <div class="win-name"  id="win-name">—</div>
+  <div class="win-subtitle">Checkout!</div>
+  <div class="win-actions">
+    <button class="btn-new-game" id="btn-win-newgame">New Game</button>
+    <button id="btn-win-rematch">Rematch</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script src="ble.js"></script>
+<script src="scorer.js"></script>
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// App state
+// ---------------------------------------------------------------------------
+const app = {
+  ble: null,
+  game: null,
+  gameType: '501',
+  players: ['Player 1', 'Player 2'],
+  doubleIn: false,
+  doubleOut: true,
+};
+
+const LS_KEY = 'dartslive-scorer-game';
+
+// ---------------------------------------------------------------------------
+// BLE
+// ---------------------------------------------------------------------------
+function initBLE() {
+  app.ble = new DartsLiveBLE();
+
+  app.ble.addEventListener('connect', e => {
+    updateBLEBar(true, e.detail.name);
+    showToast('Connected: ' + e.detail.name, 'good');
+  });
+
+  app.ble.addEventListener('disconnect', () => {
+    updateBLEBar(false, null);
+    showToast('Disconnected', 'warn');
+  });
+
+  app.ble.addEventListener('dart', e => {
+    handleDart(e.detail);
+  });
+}
+
+function updateBLEBar(connected, name) {
+  const screens = ['setup', 'g01', 'ckt'];
+  screens.forEach(prefix => {
+    const dot    = document.getElementById(prefix + '-ble-dot');
+    const status = document.getElementById(prefix + '-ble-status');
+    const btnCon = document.getElementById(prefix + '-ble-connect');
+    const btnDis = document.getElementById(prefix + '-ble-disconnect');
+    if (!dot) return;
+
+    dot.className = 'ble-dot ' + (connected ? 'connected' : 'disconnected');
+    status.textContent = connected ? ('Connected: ' + name) : 'Not connected';
+    btnCon.style.display = connected ? 'none' : '';
+    btnDis.style.display = connected ? ''     : 'none';
+  });
+}
+
+function wireBLEBar(prefix) {
+  const btnCon = document.getElementById(prefix + '-ble-connect');
+  const btnDis = document.getElementById(prefix + '-ble-disconnect');
+
+  btnCon.addEventListener('click', async () => {
+    const dot    = document.getElementById(prefix + '-ble-dot');
+    const status = document.getElementById(prefix + '-ble-status');
+    dot.className = 'ble-dot connecting';
+    status.textContent = 'Connecting…';
+    btnCon.disabled = true;
+    try {
+      await app.ble.connect();
+    } catch (err) {
+      dot.className = 'ble-dot disconnected';
+      status.textContent = 'Connection failed';
+      showToast('BLE: ' + (err.message || err), 'warn');
+    } finally {
+      btnCon.disabled = false;
+    }
+  });
+
+  btnDis.addEventListener('click', async () => {
+    await app.ble.disconnect();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Screen nav
+// ---------------------------------------------------------------------------
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+}
+
+// ---------------------------------------------------------------------------
+// Setup screen
+// ---------------------------------------------------------------------------
+function initSetupScreen() {
+  wireBLEBar('setup');
+
+  // Game type buttons
+  document.querySelectorAll('.game-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.game-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      app.gameType = btn.dataset.type;
+      const sec = document.getElementById('options-01-section');
+      sec.style.display = app.gameType === 'Cricket' ? 'none' : '';
+    });
+  });
+
+  // Double checkboxes
+  document.getElementById('chk-double-in').addEventListener('change', e => {
+    app.doubleIn = e.target.checked;
+  });
+  document.getElementById('chk-double-out').addEventListener('change', e => {
+    app.doubleOut = e.target.checked;
+  });
+
+  // Add player
+  document.getElementById('add-player-btn').addEventListener('click', () => {
+    if (app.players.length < 4) {
+      app.players.push('Player ' + (app.players.length + 1));
+      renderPlayerInputs();
+    }
+  });
+
+  // Start game
+  document.getElementById('start-btn').addEventListener('click', startGame);
+
+  // Resume banner buttons
+  document.getElementById('btn-resume').addEventListener('click', () => {
+    const saved = loadSavedGame();
+    if (saved) resumeGame(saved);
+  });
+  document.getElementById('btn-discard-saved').addEventListener('click', () => {
+    localStorage.removeItem(LS_KEY);
+    document.getElementById('resume-banner').classList.remove('visible');
+  });
+
+  renderPlayerInputs();
+}
+
+function renderPlayerInputs() {
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+  app.players.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <input type="text" value="${escHtml(name)}" placeholder="Player ${i+1}" data-idx="${i}" />
+      <button class="remove-btn" data-idx="${i}" ${app.players.length <= 1 ? 'disabled' : ''}>✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input[type="text"]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      app.players[+inp.dataset.idx] = inp.value || ('Player ' + (+inp.dataset.idx + 1));
+    });
+  });
+
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      if (app.players.length > 1) {
+        app.players.splice(idx, 1);
+        renderPlayerInputs();
+      }
+    });
+  });
+
+  document.getElementById('add-player-btn').disabled = app.players.length >= 4;
+}
+
+function startGame() {
+  // Read current player names from inputs
+  const inputs = document.querySelectorAll('#player-list input[type="text"]');
+  app.players = Array.from(inputs).map((inp, i) => inp.value.trim() || ('Player ' + (i + 1)));
+
+  if (app.gameType === 'Cricket') {
+    app.game = new GameCricket({ players: app.players });
+    renderCricket();
+    showScreen('cricket');
+  } else {
+    const startScore = parseInt(app.gameType, 10);
+    app.game = new Game01({
+      startScore,
+      players: app.players,
+      doubleIn: app.doubleIn,
+      doubleOut: app.doubleOut,
+    });
+    renderGame01();
+    showScreen('01');
+  }
+  saveGame();
+}
+
+function resumeGame(saved) {
+  if (saved.type === 'Game01') {
+    app.game = Game01.restore(saved);
+    renderGame01();
+    showScreen('01');
+  } else if (saved.type === 'GameCricket') {
+    app.game = GameCricket.restore(saved);
+    renderCricket();
+    showScreen('cricket');
+  }
+  document.getElementById('resume-banner').classList.remove('visible');
+}
+
+// ---------------------------------------------------------------------------
+// 01 game rendering
+// ---------------------------------------------------------------------------
+function initGame01Screen() {
+  wireBLEBar('g01');
+
+  document.getElementById('btn-undo-01').addEventListener('click', () => {
+    if (app.game && app.game instanceof Game01) {
+      if (app.game.undo()) {
+        renderGame01();
+        saveGame();
+      }
+    }
+  });
+
+  document.getElementById('btn-skip-01').addEventListener('click', () => {
+    if (app.game && app.game instanceof Game01) {
+      if (app.game.skipTurn()) {
+        renderGame01();
+        saveGame();
+      }
+    }
+  });
+
+  document.getElementById('btn-manual-01').addEventListener('click', () => {
+    openManualEntry();
+  });
+
+  document.getElementById('btn-newgame-01').addEventListener('click', () => {
+    showScreen('setup');
+  });
+}
+
+function renderGame01() {
+  if (!app.game || !(app.game instanceof Game01)) return;
+  updatePlayerCards01();
+  updateDartBoxes();
+  updateHistory01();
+  updateTurnTotal01();
+
+  // undo/skip button state
+  document.getElementById('btn-undo-01').disabled = !app.game.canUndo;
+  document.getElementById('btn-skip-01').disabled =
+    app.game.state.currentTurn.dartCount === 0 || app.game.state.phase === 'won';
+}
+
+function updatePlayerCards01() {
+  const s = app.game.state;
+  const container = document.getElementById('player-cards-01');
+  // Rebuild if player count changed, otherwise update in place
+  if (container.children.length !== s.players.length) {
+    container.innerHTML = '';
+    s.players.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.id = 'card-01-' + i;
+      card.innerHTML = `
+        <span class="card-name">${escHtml(p.name)}</span>
+        <span class="card-score">${p.score}</span>
+        <span class="card-turn-total"></span>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // Compute turn contribution for current player
+  const turnDarts = s.currentTurn.darts;
+  const turnTotal = turnDarts.reduce((sum, d) => sum + (d.counted ? d.segment.score : 0), 0);
+
+  s.players.forEach((p, i) => {
+    const card = document.getElementById('card-01-' + i);
+    if (!card) return;
+    card.classList.toggle('active', i === s.currentPlayerIndex && s.phase !== 'won');
+    card.classList.toggle('winner', s.winner === i);
+
+    card.querySelector('.card-name').textContent = p.name;
+    card.querySelector('.card-score').textContent = p.score;
+
+    const contrib = card.querySelector('.card-turn-total');
+    if (i === s.currentPlayerIndex && s.phase !== 'won' && turnTotal > 0) {
+      contrib.textContent = '−' + turnTotal;
+    } else {
+      contrib.textContent = '';
+    }
+  });
+}
+
+function updateDartBoxes() {
+  const s = app.game.state;
+  const turn = s.currentTurn;
+  const bleConnected = app.ble && app.ble.connected;
+
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById('dart-box-' + i);
+    const dart = turn.darts[i];
+    const labelEl = box.querySelector('.dart-label');
+    const scoreEl = box.querySelector('.dart-score');
+
+    // Remove all modifier classes
+    box.className = 'dart-box';
+
+    if (dart) {
+      const seg = dart.segment;
+      labelEl.textContent = seg.label;
+      scoreEl.textContent = seg.score;
+
+      if (dart.bust) {
+        box.classList.add('bust-dart');
+      } else if (dart.win) {
+        box.classList.add('win-dart');
+      } else if (!dart.counted) {
+        box.classList.add('skipped-dart');
+        labelEl.textContent = seg.label;
+        scoreEl.textContent = '0';
+      } else {
+        box.classList.add('filled');
+      }
+    } else {
+      labelEl.textContent = '—';
+      scoreEl.textContent = '·';
+      box.classList.add('empty');
+      // Pulse the next empty slot when BLE connected
+      if (bleConnected && i === turn.dartCount && s.phase !== 'won') {
+        box.classList.add('next-slot');
+      }
+    }
+  }
+}
+
+function updateTurnTotal01() {
+  const s = app.game.state;
+  const total = s.currentTurn.darts.reduce((sum, d) => sum + (d.counted ? d.segment.score : 0), 0);
+  const line = document.getElementById('turn-total-01');
+  line.innerHTML = 'Turn total: <span>' + total + '</span>';
+}
+
+function updateHistory01() {
+  const s = app.game.state;
+  const sidebar = document.getElementById('history-sidebar-01');
+
+  // Keep the title, rebuild entries
+  const title = sidebar.querySelector('.history-sidebar-title');
+  sidebar.innerHTML = '';
+  sidebar.appendChild(title);
+
+  const entries = s.history.slice(0, 9);
+  entries.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'history-entry' + (entry.wasBust ? ' h-bust' : '');
+
+    const dartLabels = entry.darts.map(d => d.segment.label).join('  ');
+    const turnTotal  = entry.darts.reduce((sum, d) => sum + (d.counted ? d.segment.score : 0), 0);
+
+    el.innerHTML = `
+      <span class="h-player">${escHtml(entry.playerName)}</span>
+      <span class="h-darts">${escHtml(dartLabels) || '—'}</span>
+      <span class="h-total">${entry.wasBust ? 'BUST' : '+' + turnTotal}</span>
+    `;
+    sidebar.appendChild(el);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cricket rendering
+// ---------------------------------------------------------------------------
+function initCricketScreen() {
+  wireBLEBar('ckt');
+
+  document.getElementById('btn-undo-ckt').addEventListener('click', () => {
+    if (app.game && app.game instanceof GameCricket) {
+      if (app.game.undo()) {
+        renderCricket();
+        saveGame();
+      }
+    }
+  });
+
+  document.getElementById('btn-skip-ckt').addEventListener('click', () => {
+    if (app.game && app.game instanceof GameCricket) {
+      if (app.game.skipTurn()) {
+        renderCricket();
+        saveGame();
+      }
+    }
+  });
+
+  document.getElementById('btn-manual-ckt').addEventListener('click', () => {
+    openManualEntry();
+  });
+
+  document.getElementById('btn-newgame-ckt').addEventListener('click', () => {
+    showScreen('setup');
+  });
+}
+
+function renderCricket() {
+  if (!app.game || !(app.game instanceof GameCricket)) return;
+  updateCricketGrid();
+  updateCricketSide();
+
+  document.getElementById('btn-undo-ckt').disabled = !app.game.canUndo;
+  document.getElementById('btn-skip-ckt').disabled =
+    app.game.state.currentTurn.dartCount === 0 || app.game.state.phase === 'won';
+}
+
+function updateCricketGrid() {
+  const s = app.game.state;
+  const numbers = CRICKET_NUMBERS;
+
+  // Build header row
+  const thead = document.getElementById('cricket-thead');
+  thead.innerHTML = '';
+  const hrow = document.createElement('tr');
+  hrow.innerHTML = '<th></th>' +
+    s.players.map((p, i) =>
+      `<th class="${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${escHtml(p.name)}</th>`
+    ).join('');
+  thead.appendChild(hrow);
+
+  // Build body rows
+  const tbody = document.getElementById('cricket-tbody');
+  tbody.innerHTML = '';
+
+  numbers.forEach(n => {
+    const tr = document.createElement('tr');
+    const closed = app.game.isClosedGlobally(n);
+    if (closed) tr.classList.add('closed-globally');
+
+    const label = n === 25 ? 'Bull' : String(n);
+    tr.innerHTML = `<td class="num-col">${label}</td>` +
+      s.players.map((p, i) => {
+        const m = Math.min(p.marks[n], 3);   // display cap at 3
+        const rawMarks = p.marks[n];
+        return `<td class="marks-cell ${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${GameCricket.marksDisplay(rawMarks)}</td>`;
+      }).join('');
+    tbody.appendChild(tr);
+  });
+
+  // Score row
+  const scoreRow = document.createElement('tr');
+  scoreRow.className = 'score-row';
+  scoreRow.innerHTML = '<td>PTS</td>' +
+    s.players.map((p, i) =>
+      `<td class="${i === s.currentPlayerIndex && s.phase !== 'won' ? 'active-player' : ''}">${p.score}</td>`
+    ).join('');
+  tbody.appendChild(scoreRow);
+}
+
+function updateCricketSide() {
+  const s = app.game.state;
+  const turn = s.currentTurn;
+  const bleConnected = app.ble && app.ble.connected;
+
+  // Current player label
+  const lbl = document.getElementById('ckt-turn-label');
+  if (s.phase !== 'won') {
+    lbl.textContent = s.players[s.currentPlayerIndex].name + "'s Turn";
+  } else {
+    lbl.textContent = 'Game Over';
+  }
+
+  // Dart chips
+  for (let i = 0; i < 3; i++) {
+    const chip = document.getElementById('ckt-chip-' + i);
+    chip.className = 'cricket-dart-chip';
+    const dart = turn.darts[i];
+    if (dart) {
+      chip.textContent = dart.segment.label;
+      if (dart.pointsScored > 0) {
+        chip.classList.add('scored');
+        chip.innerHTML = dart.segment.label + '<br><small>+' + dart.pointsScored + '</small>';
+      } else {
+        chip.classList.add('filled');
+      }
+    } else {
+      chip.textContent = '—';
+      if (bleConnected && i === turn.dartCount && s.phase !== 'won') {
+        chip.classList.add('next-slot');
+      }
+    }
+  }
+
+  // History
+  const hist = document.getElementById('ckt-history');
+  hist.innerHTML = '';
+  s.history.slice(0, 9).forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'history-entry';
+    const dartLabels = entry.darts.map(d => d.segment.label).join('  ');
+    const pts = entry.darts.reduce((sum, d) => sum + (d.pointsScored || 0), 0);
+    el.innerHTML = `
+      <span class="h-player">${escHtml(entry.playerName)}</span>
+      <span class="h-darts">${escHtml(dartLabels) || '—'}</span>
+      <span class="h-total" style="color:var(--green)">${pts > 0 ? '+' + pts : '·'}</span>
+    `;
+    hist.appendChild(el);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Dart handler — called by BLE and manual entry
+// ---------------------------------------------------------------------------
+function handleDart(segment) {
+  if (!app.game) return;
+
+  if (app.game instanceof Game01) {
+    const result = app.game.throwDart(segment);
+    renderGame01();
+
+    // Hide bust banner by default; the result.bust drives the toast
+    document.getElementById('bust-banner').classList.remove('visible');
+
+    if (result.bust) {
+      showToast('BUST!', 'warn');
+    }
+    if (result.skipped) {
+      showToast('Need a double to start!', 'info');
+    }
+    if (result.win) {
+      const winnerName = app.game.state.players[app.game.state.winner].name;
+      showWin(winnerName);
+    }
+  } else if (app.game instanceof GameCricket) {
+    const result = app.game.throwDart(segment);
+    renderCricket();
+
+    if (result.pointsScored > 0) {
+      showToast('+' + result.pointsScored, 'good', 1500);
+    }
+    if (result.win) {
+      const winnerName = app.game.state.players[app.game.state.winner].name;
+      showWin(winnerName);
+    }
+  }
+
+  saveGame();
+}
+
+// ---------------------------------------------------------------------------
+// Manual entry modal
+// ---------------------------------------------------------------------------
+let _manualState = { multiplier: 1, number: null, segment: null };
+
+function openManualEntry() {
+  _manualState = { multiplier: 1, number: null, segment: null };
+
+  // Build number grid
+  const grid = document.getElementById('number-grid');
+  grid.innerHTML = '';
+  for (let n = 1; n <= 20; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'num-btn';
+    btn.textContent = n;
+    btn.dataset.num = n;
+    btn.addEventListener('click', () => {
+      _manualState.number = n;
+      document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      updateManualPreview();
+    });
+    grid.appendChild(btn);
+  }
+
+  // Multiplier buttons
+  document.querySelectorAll('.mult-btn').forEach(btn => {
+    btn.classList.toggle('active', +btn.dataset.mult === _manualState.multiplier);
+    btn.onclick = () => {
+      _manualState.multiplier = +btn.dataset.mult;
+      _manualState.number = null;
+      document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelectorAll('.mult-btn').forEach(b =>
+        b.classList.toggle('active', b === btn));
+      updateManualPreview();
+    };
+  });
+
+  // Bull buttons — these bypass the multiplier system
+  document.getElementById('btn-bull-outer').onclick = () => {
+    _manualState.segment = { number: 25, multiplier: 1, score: 25, zone: 'bull',  label: 'BULL'  };
+    document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+    _manualState.number = null;
+    updateManualPreview(true);
+  };
+  document.getElementById('btn-bull-inner').onclick = () => {
+    _manualState.segment = { number: 25, multiplier: 2, score: 50, zone: 'dbull', label: 'DBULL' };
+    document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+    _manualState.number = null;
+    updateManualPreview(true);
+  };
+
+  updateManualPreview();
+  document.getElementById('manual-modal').classList.add('visible');
+}
+
+function updateManualPreview(fromBull = false) {
+  const preview = document.getElementById('manual-preview');
+  const throwBtn = document.getElementById('btn-modal-throw');
+
+  if (fromBull && _manualState.segment) {
+    const seg = _manualState.segment;
+    preview.innerHTML = `<span class="preview-label">${seg.label}</span> <span class="preview-score">(${seg.score} pts)</span>`;
+    throwBtn.disabled = false;
+    return;
+  }
+
+  _manualState.segment = null;
+
+  if (_manualState.number === null) {
+    preview.innerHTML = `<span class="preview-label">—</span>`;
+    throwBtn.disabled = true;
+    return;
+  }
+
+  const n   = _manualState.number;
+  const m   = _manualState.multiplier;
+  const pts = n * m;
+  const zoneMap = { 1: 'single', 2: 'double', 3: 'triple' };
+  const pfxMap  = { 1: 'S', 2: 'D', 3: 'T' };
+  const label   = pfxMap[m] + n;
+  const zone    = zoneMap[m];
+  _manualState.segment = { number: n, multiplier: m, score: pts, zone, label };
+
+  preview.innerHTML = `<span class="preview-label">${label}</span> <span class="preview-score">(${pts} pts)</span>`;
+  throwBtn.disabled = false;
+}
+
+function closeManualEntry() {
+  document.getElementById('manual-modal').classList.remove('visible');
+}
+
+// Wire up modal buttons (done once at init)
+function initManualModal() {
+  document.getElementById('btn-modal-throw').addEventListener('click', () => {
+    if (_manualState.segment) {
+      closeManualEntry();
+      handleDart(_manualState.segment);
+    }
+  });
+  document.getElementById('btn-modal-cancel').addEventListener('click', closeManualEntry);
+  // Close on overlay click
+  document.getElementById('manual-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('manual-modal')) closeManualEntry();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Win overlay
+// ---------------------------------------------------------------------------
+function showWin(playerName) {
+  document.getElementById('win-name').textContent = playerName;
+  document.getElementById('win-overlay').classList.add('visible');
+}
+
+function initWinOverlay() {
+  document.getElementById('btn-win-newgame').addEventListener('click', () => {
+    document.getElementById('win-overlay').classList.remove('visible');
+    localStorage.removeItem(LS_KEY);
+    app.game = null;
+    showScreen('setup');
+  });
+
+  document.getElementById('btn-win-rematch').addEventListener('click', () => {
+    document.getElementById('win-overlay').classList.remove('visible');
+    // Restart same game config
+    startRematch();
+  });
+}
+
+function startRematch() {
+  if (!app.game) return;
+  const s = app.game.state;
+  const playerNames = s.players.map(p => p.name);
+
+  if (app.game instanceof Game01) {
+    app.game = new Game01({
+      startScore:  s.startScore,
+      players:     playerNames,
+      doubleIn:    s.doubleIn,
+      doubleOut:   s.doubleOut,
+    });
+    renderGame01();
+    showScreen('01');
+  } else if (app.game instanceof GameCricket) {
+    app.game = new GameCricket({ players: playerNames });
+    renderCricket();
+    showScreen('cricket');
+  }
+  saveGame();
+}
+
+// ---------------------------------------------------------------------------
+// localStorage
+// ---------------------------------------------------------------------------
+function saveGame() {
+  if (!app.game) return;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(app.game.toJSON()));
+  } catch (e) {
+    // Storage full or unavailable — silently skip
+  }
+}
+
+function loadSavedGame() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function showResumeBanner(saved) {
+  const banner = document.getElementById('resume-banner');
+  // Show the type of game saved
+  let desc = saved.type === 'Game01'
+    ? (saved.options.startScore || '?') + ' game'
+    : 'Cricket game';
+  banner.querySelector('span').textContent = 'Resume ' + desc + ' in progress';
+  banner.classList.add('visible');
+}
+
+// ---------------------------------------------------------------------------
+// Toast
+// ---------------------------------------------------------------------------
+function showToast(msg, type = 'info', ms = 2000) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  // Override animation duration to match ms param
+  const fadeMs = 300;
+  const holdMs = ms - fadeMs;
+  toast.style.animation =
+    `toast-in 0.25s ease-out, toast-out ${fadeMs/1000}s ease-in ${holdMs/1000}s forwards`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), ms + 50);
+}
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+window.addEventListener('DOMContentLoaded', () => {
+  initBLE();
+  initSetupScreen();
+  initGame01Screen();
+  initCricketScreen();
+  initManualModal();
+  initWinOverlay();
+
+  const saved = loadSavedGame();
+  if (saved && saved.state && saved.state.phase !== 'won') {
+    showResumeBanner(saved);
+  }
+
+  showScreen('setup');
+});
+</script>
+</body>
+</html>
