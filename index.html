@@ -164,12 +164,85 @@
 
     <!-- Side panel -->
     <div class="cricket-side">
-      <div class="cricket-side-section">
-        <div class="cricket-side-label" id="ckt-turn-label">Turn</div>
-        <div class="cricket-turn-darts" id="ckt-turn-darts">
-          <div class="cricket-dart-chip" id="ckt-chip-0">—</div>
-          <div class="cricket-dart-chip" id="ckt-chip-1">—</div>
-          <div class="cricket-dart-chip" id="ckt-chip-2">—</div>
+
+      <!-- Turn label -->
+      <div class="cricket-side-label" id="ckt-turn-label">Turn</div>
+
+      <!-- Featured last throw -->
+      <div class="ckt-last-throw-zone" id="ckt-last-throw-zone">
+        <div class="ckt-dart-diamond">
+          <div class="ckt-dart-svg-wrap">
+            <svg viewBox="0 0 190 58" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- flights -->
+              <polygon points="30,29 0,5 17,29" fill="#cc1f35"/>
+              <polygon points="30,29 0,53 17,29" fill="#cc1f35"/>
+              <polygon points="30,29 10,13 22,29" fill="#f03050" opacity="0.75"/>
+              <polygon points="30,29 10,45 22,29" fill="#f03050" opacity="0.75"/>
+              <!-- shaft -->
+              <rect x="30" y="26.5" width="40" height="5" rx="2.5" fill="#3d5170"/>
+              <!-- barrel -->
+              <rect x="70" y="21" width="66" height="16" rx="8" fill="#b87c10"/>
+              <rect x="70" y="21" width="66" height="6" rx="4" fill="#e8a830" opacity="0.55"/>
+              <!-- grip rings -->
+              <rect x="83" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
+              <rect x="93" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
+              <rect x="103" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
+              <rect x="113" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
+              <!-- tip shoulder -->
+              <rect x="136" y="23" width="12" height="12" rx="2" fill="#6e84a8"/>
+              <!-- needle -->
+              <polygon points="148,29 190,29 148,26 148,32" fill="#c0cee0"/>
+            </svg>
+          </div>
+        </div>
+        <div class="ckt-last-throw-text">
+          <div class="ckt-last-sublabel">LAST DART</div>
+          <div class="ckt-last-result" id="ckt-last-result">—</div>
+          <div class="ckt-last-pts" id="ckt-last-pts"></div>
+        </div>
+      </div>
+
+      <!-- Current turn darts — vertical column -->
+      <div class="cricket-side-label">THIS TURN</div>
+      <div class="cricket-turn-col" id="ckt-turn-darts">
+        <div class="cricket-dart-chip" id="ckt-chip-0" data-filled="0">
+          <svg class="chip-dart-icon" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polygon points="8,8 0,1.5 5,8" fill="#cc1f35"/>
+            <polygon points="8,8 0,14.5 5,8" fill="#cc1f35"/>
+            <rect x="8" y="6.5" width="10" height="3" rx="1.5" fill="#3d5170"/>
+            <rect x="18" y="5" width="18" height="6" rx="3" fill="#b87c10"/>
+            <rect x="21" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="24.5" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="28" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <polygon points="36,8 48,8 36,6 36,10" fill="#c0cee0"/>
+          </svg>
+          <span class="chip-text">—</span>
+        </div>
+        <div class="cricket-dart-chip" id="ckt-chip-1" data-filled="0">
+          <svg class="chip-dart-icon" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polygon points="8,8 0,1.5 5,8" fill="#cc1f35"/>
+            <polygon points="8,8 0,14.5 5,8" fill="#cc1f35"/>
+            <rect x="8" y="6.5" width="10" height="3" rx="1.5" fill="#3d5170"/>
+            <rect x="18" y="5" width="18" height="6" rx="3" fill="#b87c10"/>
+            <rect x="21" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="24.5" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="28" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <polygon points="36,8 48,8 36,6 36,10" fill="#c0cee0"/>
+          </svg>
+          <span class="chip-text">—</span>
+        </div>
+        <div class="cricket-dart-chip" id="ckt-chip-2" data-filled="0">
+          <svg class="chip-dart-icon" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polygon points="8,8 0,1.5 5,8" fill="#cc1f35"/>
+            <polygon points="8,8 0,14.5 5,8" fill="#cc1f35"/>
+            <rect x="8" y="6.5" width="10" height="3" rx="1.5" fill="#3d5170"/>
+            <rect x="18" y="5" width="18" height="6" rx="3" fill="#b87c10"/>
+            <rect x="21" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="24.5" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <rect x="28" y="5" width="1.5" height="6" rx="0.5" fill="#7a5008"/>
+            <polygon points="36,8 48,8 36,6 36,10" fill="#c0cee0"/>
+          </svg>
+          <span class="chip-text">—</span>
         </div>
       </div>
 
@@ -880,23 +953,76 @@ function updateCricketSide() {
     }
   }
 
-  // Dart chips
+  // Featured last-throw display
+  const lastResultEl = document.getElementById('ckt-last-result');
+  const lastPtsEl    = document.getElementById('ckt-last-pts');
+  const lastZone     = document.getElementById('ckt-last-throw-zone');
+  if (lastResultEl) {
+    const apc = (s.phase !== 'won')
+      ? PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length]
+      : (s.winner !== null ? PLAYER_COLORS[s.winner % PLAYER_COLORS.length] : PLAYER_COLORS[0]);
+
+    const prevLastResult = lastResultEl.dataset.lastLabel || '';
+
+    let lastDart = null;
+    let fromCurrentTurn = false;
+    if (turn.darts.length > 0) {
+      lastDart = turn.darts[turn.darts.length - 1];
+      fromCurrentTurn = true;
+    } else if (s.history.length > 0) {
+      const prev = s.history[0].darts;
+      if (prev.length > 0) lastDart = prev[prev.length - 1];
+    }
+
+    if (lastDart) {
+      const label = lastDart.segment.label;
+      lastResultEl.textContent = label;
+      lastResultEl.style.opacity = fromCurrentTurn ? '1' : '0.4';
+      if (lastDart.pointsScored > 0) {
+        lastResultEl.style.color = 'var(--green)';
+        lastResultEl.style.textShadow = '0 0 20px var(--green-glow)';
+        lastPtsEl.textContent = '+' + lastDart.pointsScored + ' PTS';
+      } else {
+        lastResultEl.style.color = apc.color;
+        lastResultEl.style.textShadow = '0 0 20px ' + apc.glow;
+        lastPtsEl.textContent = '';
+      }
+      // Animate zone when a new dart arrives
+      if (fromCurrentTurn && label !== prevLastResult && lastZone) {
+        lastZone.classList.remove('dart-zone-landed');
+        void lastZone.offsetWidth;
+        lastZone.classList.add('dart-zone-landed');
+        setTimeout(() => lastZone.classList.remove('dart-zone-landed'), 480);
+      }
+      lastResultEl.dataset.lastLabel = fromCurrentTurn ? label : '';
+    } else {
+      lastResultEl.textContent = '—';
+      lastResultEl.style.color = 'var(--muted)';
+      lastResultEl.style.textShadow = 'none';
+      lastResultEl.style.opacity = '1';
+      lastPtsEl.textContent = '';
+      lastResultEl.dataset.lastLabel = '';
+    }
+  }
+
+  // Dart chips (vertical column)
   for (let i = 0; i < 3; i++) {
     const chip = document.getElementById('ckt-chip-' + i);
     const wasFilled = chip.dataset.filled === '1';
+    const textEl = chip.querySelector('.chip-text');
 
     chip.className = 'cricket-dart-chip';
     const dart = turn.darts[i];
     if (dart) {
-      chip.textContent = dart.segment.label;
       if (dart.pointsScored > 0) {
         chip.classList.add('scored');
-        chip.innerHTML = dart.segment.label + '<br><small>+' + dart.pointsScored + '</small>';
+        textEl.innerHTML = escHtml(dart.segment.label) + ' <small>+' + dart.pointsScored + '</small>';
       } else {
         chip.classList.add('filled');
+        textEl.textContent = dart.segment.label;
       }
     } else {
-      chip.textContent = '—';
+      textEl.textContent = '—';
       if (bleConnected && i === turn.dartCount && s.phase !== 'won') {
         chip.classList.add('next-slot');
       }
