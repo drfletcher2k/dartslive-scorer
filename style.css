@@ -271,15 +271,18 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 0;
-  align-items: center;
+  align-items: stretch;
 }
 
 .setup-logo-panel {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 40px 24px 16px;
+  gap: 20px;
+  padding: 24px 32px 24px 16px;
   border-right: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 0;
 }
 
 .setup-controls {
@@ -287,6 +290,59 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   flex-direction: column;
   gap: 22px;
   padding: 24px 16px 24px 40px;
+  justify-content: center;
+}
+
+/* ── Cricket Leaderboard ─────────────────────────────── */
+#cricket-leaderboard {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.lb-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.lb-table th {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-align: left;
+  padding: 3px 5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.lb-table td {
+  padding: 6px 5px;
+  border-bottom: 1px solid rgba(29,45,69,0.5);
+}
+
+.lb-rank { color: var(--muted); width: 16px; }
+.lb-name { font-weight: 600; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-ratio { font-family: var(--font-score); font-weight: 700; font-size: 13px; text-align: right; }
+.lb-pos   { color: var(--green); }
+.lb-neg   { color: var(--muted); }
+
+.lb-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 14px 0;
 }
 
 .setup-section-label {
@@ -1366,9 +1422,10 @@ table.cricket-table {
 
   .setup-body { padding: 16px; overflow-y: auto; align-items: flex-start; }
   .setup-inner { grid-template-columns: 1fr; }
-  .setup-logo-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
-  .setup-logo-img { max-width: 120px; }
-  .setup-controls { padding: 16px 0; }
+  .setup-logo-panel { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; gap: 12px; overflow: visible; }
+  .setup-logo-img { max-width: 80px; }
+  #cricket-leaderboard { flex: 1; min-width: 180px; overflow-y: visible; }
+  .setup-controls { padding: 16px 0; justify-content: flex-start; }
 }
 
 @media (min-width: 768px) {
