@@ -28,6 +28,16 @@
       <!-- Left: Logo panel (1/3) -->
       <div class="setup-logo-panel">
         <img src="logo.png" alt="The Fletchers" class="setup-logo-img" onerror="this.style.display='none'">
+        <div id="cricket-leaderboard">
+          <div class="lb-title">Cricket Leaderboard</div>
+          <table class="lb-table">
+            <thead>
+              <tr><th>#</th><th>Player</th><th>W</th><th>GP</th><th>Rating</th></tr>
+            </thead>
+            <tbody id="lb-tbody"></tbody>
+          </table>
+          <div class="lb-empty" id="lb-empty">No games recorded yet</div>
+        </div>
       </div>
 
       <!-- Right: Controls panel (2/3) -->
@@ -368,7 +378,8 @@ const app = {
   _prevActiveCkt: -1,
 };
 
-const LS_KEY = 'dartslive-scorer-game';
+const LS_KEY          = 'dartslive-scorer-game';
+const LS_HISTORY_KEY  = 'dartslive-cricket-history';
 
 // ---------------------------------------------------------------------------
 // Turn Announcement Overlay
@@ -1115,7 +1126,9 @@ function handleDart(segment) {
       showToast('+' + result.pointsScored, 'good', 1500);
     }
     if (result.win) {
-      const winnerName = app.game.state.players[app.game.state.winner].name;
+      const s          = app.game.state;
+      const winnerName = s.players[s.winner].name;
+      recordCricketResult(s.players.map(p => p.name), winnerName);
       showWin(winnerName);
     }
   }
@@ -1356,6 +1369,66 @@ function escHtml(str) {
 }
 
 // ---------------------------------------------------------------------------
+// Cricket leaderboard — persistent win history
+// ---------------------------------------------------------------------------
+function loadCricketHistory() {
+  try {
+    const raw = localStorage.getItem(LS_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function recordCricketResult(players, winner) {
+  const history = loadCricketHistory();
+  history.push({ ts: Date.now(), players, winner, fieldSize: players.length });
+  try { localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
+  renderLeaderboard();
+}
+
+function computeLeaderboard(history) {
+  const map = {};
+  history.forEach(game => {
+    game.players.forEach(name => {
+      if (!map[name]) map[name] = { name, games: 0, wins: 0, expected: 0 };
+      map[name].games++;
+      map[name].expected += 1 / game.fieldSize;
+      if (name === game.winner) map[name].wins++;
+    });
+  });
+  return Object.values(map)
+    .map(p => ({ ...p, ratio: p.expected > 0 ? p.wins / p.expected : 0 }))
+    .sort((a, b) => b.ratio - a.ratio || b.wins - a.wins);
+}
+
+function renderLeaderboard() {
+  const rows  = computeLeaderboard(loadCricketHistory());
+  const tbody = document.getElementById('lb-tbody');
+  const empty = document.getElementById('lb-empty');
+  if (!tbody) return;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = '';
+  rows.forEach((p, i) => {
+    const tr   = document.createElement('tr');
+    const ratioDisplay = p.ratio.toFixed(1) + '×';
+    const cls  = p.ratio > 1.05 ? 'lb-ratio lb-pos' : p.ratio < 0.95 ? 'lb-ratio lb-neg' : 'lb-ratio';
+    tr.innerHTML =
+      `<td class="lb-rank">${i + 1}</td>` +
+      `<td class="lb-name">${escHtml(p.name)}</td>` +
+      `<td>${p.wins}</td>` +
+      `<td>${p.games}</td>` +
+      `<td class="${cls}">${ratioDisplay}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
@@ -1365,6 +1438,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initCricketScreen();
   initManualModal();
   initWinOverlay();
+  renderLeaderboard();
 
   // Tap anywhere on the turn announcement to dismiss early
   document.getElementById('turn-announcement').addEventListener('click', () => {
