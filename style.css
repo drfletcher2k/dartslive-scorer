@@ -256,31 +256,37 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
    ============================================================ */
 .setup-body {
   flex: 1;
-  overflow-y: auto;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 24px 32px;
+  overflow: hidden;
   background: radial-gradient(ellipse 80% 50% at 50% 0%,
     rgba(0,180,224,0.07) 0%, transparent 60%);
 }
 
 .setup-inner {
   width: 100%;
-  max-width: 540px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0;
+  align-items: center;
 }
 
-.setup-title {
-  font-family: var(--font-score);
-  font-size: 38px;
-  font-weight: 900;
-  letter-spacing: 6px;
-  color: var(--accent);
-  text-align: center;
-  text-transform: uppercase;
-  text-shadow: 0 0 24px rgba(0,180,224,0.5), 0 0 48px rgba(0,180,224,0.15);
+.setup-logo-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 40px 24px 16px;
+  border-right: 1px solid var(--border);
+}
+
+.setup-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px 16px 24px 40px;
 }
 
 .setup-section-label {
@@ -1357,6 +1363,12 @@ table.cricket-table {
   .player-card .card-score { font-size: clamp(1.8rem, 10vw, 3.5rem); }
   .history-sidebar { max-height: 120px; }
   .modal-box { padding: 14px; }
+
+  .setup-body { padding: 16px; overflow-y: auto; align-items: flex-start; }
+  .setup-inner { grid-template-columns: 1fr; }
+  .setup-logo-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+  .setup-logo-img { max-width: 120px; }
+  .setup-controls { padding: 16px 0; }
 }
 
 @media (min-width: 768px) {
@@ -1486,18 +1498,11 @@ table.cricket-table {
 /* ============================================================
    Logo — Setup & BLE bar
    ============================================================ */
-.setup-logo {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: -8px;
-}
-
 .setup-logo-img {
-  max-height: 150px;
-  width: auto;
-  max-width: 90%;
-  filter: drop-shadow(0 4px 24px rgba(0,0,0,0.6));
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  filter: drop-shadow(0 4px 32px rgba(0,180,224,0.25)) drop-shadow(0 4px 16px rgba(0,0,0,0.6));
   border-radius: 50%;
 }
 

@@ -24,51 +24,57 @@
   </div>
   <div class="setup-body">
     <div class="setup-inner">
-      <div class="setup-logo">
+
+      <!-- Left: Logo panel (1/3) -->
+      <div class="setup-logo-panel">
         <img src="logo.png" alt="The Fletchers" class="setup-logo-img" onerror="this.style.display='none'">
       </div>
-      <div class="setup-title">DARTSLIVE SCORER</div>
 
-      <!-- Resume banner -->
-      <div class="resume-banner" id="resume-banner">
-        <span>You have a game in progress</span>
-        <button class="btn-resume" id="btn-resume">Resume</button>
-        <button id="btn-discard-saved">New Game</button>
-      </div>
+      <!-- Right: Controls panel (2/3) -->
+      <div class="setup-controls">
 
-      <!-- Game type -->
-      <div>
-        <div class="setup-section-label">Game Type</div>
-        <div class="game-type-row">
-          <button class="game-type-btn" data-type="301">301</button>
-          <button class="game-type-btn active" data-type="501">501</button>
-          <button class="game-type-btn" data-type="701">701</button>
-          <button class="game-type-btn" data-type="Cricket">Cricket</button>
+        <!-- Resume banner -->
+        <div class="resume-banner" id="resume-banner">
+          <span>You have a game in progress</span>
+          <button class="btn-resume" id="btn-resume">Resume</button>
+          <button id="btn-discard-saved">New Game</button>
         </div>
-      </div>
 
-      <!-- Players -->
-      <div>
-        <div class="setup-section-label">Players</div>
-        <div class="player-list" id="player-list"></div>
-        <button class="add-player-btn" id="add-player-btn" style="margin-top:8px">+ Add Player</button>
-      </div>
-
-      <!-- 01 options -->
-      <div id="options-01-section">
-        <div class="setup-section-label">01 Options</div>
-        <div class="options-row">
-          <label class="checkbox-label">
-            <input type="checkbox" id="chk-double-in" /> Double In
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="chk-double-out" checked /> Double Out
-          </label>
+        <!-- Game type -->
+        <div>
+          <div class="setup-section-label">Game Type</div>
+          <div class="game-type-row">
+            <button class="game-type-btn" data-type="301">301</button>
+            <button class="game-type-btn active" data-type="501">501</button>
+            <button class="game-type-btn" data-type="701">701</button>
+            <button class="game-type-btn" data-type="Cricket">Cricket</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Start -->
-      <button class="start-btn" id="start-btn">Start Game</button>
+        <!-- Players -->
+        <div>
+          <div class="setup-section-label">Players</div>
+          <div class="player-list" id="player-list"></div>
+          <button class="add-player-btn" id="add-player-btn" style="margin-top:8px">+ Add Player</button>
+        </div>
+
+        <!-- 01 options -->
+        <div id="options-01-section">
+          <div class="setup-section-label">01 Options</div>
+          <div class="options-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-double-in" /> Double In
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-double-out" checked /> Double Out
+            </label>
+          </div>
+        </div>
+
+        <!-- Start -->
+        <button class="start-btn" id="start-btn">Start Game</button>
+
+      </div>
     </div>
   </div>
 </div>
