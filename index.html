@@ -504,10 +504,8 @@ function initSetupScreen() {
 
   // Add player
   document.getElementById('add-player-btn').addEventListener('click', () => {
-    if (app.players.length < 4) {
-      app.players.push('Player ' + (app.players.length + 1));
-      renderPlayerInputs();
-    }
+    app.players.push('Player ' + (app.players.length + 1));
+    renderPlayerInputs();
   });
 
   // Start game
@@ -555,7 +553,7 @@ function renderPlayerInputs() {
     });
   });
 
-  document.getElementById('add-player-btn').disabled = app.players.length >= 4;
+  document.getElementById('add-player-btn').disabled = false;
 }
 
 function startGame() {
