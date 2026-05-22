@@ -328,3 +328,97 @@ class GameCricket {
     return '⊗';   // 3+
   }
 }
+
+
+// ---------------------------------------------------------------------------
+// GameCutthroatCricket — Cutthroat Cricket variant
+// Same marks/closing rules but scoring goes AGAINST opponents instead of for self.
+// Win condition: all numbers closed AND lowest score.
+// ---------------------------------------------------------------------------
+class GameCutthroatCricket extends GameCricket {
+  constructor({ players }) {
+    super({ players });
+  }
+
+  throwDart(segment) {
+    const s = this._state;
+    if (s.phase === 'won') return { valid: false, number: null, pointsScored: 0, win: false };
+
+    this._snapshots.push(JSON.stringify(s));
+
+    const pi = s.currentPlayerIndex;
+    const player = s.players[pi];
+
+    let n = segment.number;
+    if (segment.zone === 'bull' || segment.zone === 'dbull') n = 25;
+
+    const isCricketNumber = CRICKET_NUMBERS.includes(n);
+    let pointsScored = 0;
+
+    if (isCricketNumber) {
+      const prevMarks = player.marks[n];
+      player.marks[n] += segment.multiplier;
+      const newMarks = player.marks[n];
+
+      const marksOver3Before = Math.max(0, prevMarks - 3);
+      const marksOver3After  = Math.max(0, newMarks  - 3);
+      const scoringMarks     = marksOver3After - marksOver3Before;
+
+      // Add points to each opponent who hasn't closed this number
+      if (scoringMarks > 0) {
+        const pts = scoringMarks * n;
+        const openOpponents = s.players.filter((p, i) => i !== pi && p.marks[n] < 3);
+        if (openOpponents.length > 0) {
+          openOpponents.forEach(opp => { opp.score += pts; });
+          pointsScored = pts;
+        }
+      }
+    }
+
+    s.currentTurn.darts.push({ segment, number: isCricketNumber ? n : null, pointsScored });
+    s.currentTurn.dartCount++;
+
+    const win = this._checkWinner();
+    if (win) {
+      s.winner = s.currentPlayerIndex;
+      s.phase  = 'won';
+      this._advanceTurn(false);
+      return { valid: true, number: isCricketNumber ? n : null, pointsScored, win: true };
+    }
+
+    if (s.currentTurn.dartCount >= 3) {
+      this._advanceTurn(false);
+    }
+
+    return { valid: true, number: isCricketNumber ? n : null, pointsScored, win: false };
+  }
+
+  _checkWinner() {
+    const s  = this._state;
+    const pi = s.currentPlayerIndex;
+    const player = s.players[pi];
+
+    const allClosed = CRICKET_NUMBERS.every(n => player.marks[n] >= 3);
+    if (!allClosed) return false;
+
+    // Win when all numbers closed AND this player has the lowest (or tied) score
+    const myScore = player.score;
+    return s.players.every(p => p === player || p.score >= myScore);
+  }
+
+  toJSON() {
+    return {
+      type: 'GameCutthroatCricket',
+      options: this._options,
+      state: this._state,
+      snapshots: this._snapshots,
+    };
+  }
+
+  static restore(saved) {
+    const g = new GameCutthroatCricket(saved.options);
+    g._state = saved.state;
+    g._snapshots = saved.snapshots || [];
+    return g;
+  }
+}
