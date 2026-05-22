@@ -334,6 +334,21 @@
 </div>
 
 <!-- ============================================================
+     REMOVE DARTS OVERLAY — post-turn BLE lockout
+     ============================================================ -->
+<div id="remove-darts-overlay" class="remove-darts-overlay">
+  <div class="rdo-label">Remove Darts</div>
+  <div class="rdo-ring-wrap">
+    <svg class="rdo-ring-svg" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle class="rdo-track"    cx="44" cy="44" r="36"/>
+      <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
+    </svg>
+    <span class="rdo-countdown" id="rdo-countdown">7</span>
+  </div>
+  <div class="rdo-sub">Tap to skip</div>
+</div>
+
+<!-- ============================================================
      TOAST CONTAINER
      ============================================================ -->
 <!-- ============================================================
@@ -376,6 +391,13 @@ const app = {
   doubleIn: false,
   doubleOut: true,
   _prevActiveCkt: -1,
+
+  // Post-turn BLE lockout state
+  _boardLocked:        false,
+  _lastDartTime:       0,
+  _lockoutTimer:       null,
+  _lockoutInterval:    null,
+  _pendingAnnouncement: null,
 };
 
 const LS_KEY          = 'dartslive-scorer-game';
@@ -389,6 +411,11 @@ let _turnAnnTimeout = null;
 function showTurnAnnouncement(playerName, playerIdx) {
   // Don't overlay the win screen
   if (document.getElementById('win-overlay').classList.contains('visible')) return;
+  // Queue if board is locked; fires when lockout ends
+  if (app._boardLocked) {
+    app._pendingAnnouncement = { playerName, playerIdx };
+    return;
+  }
   const el = document.getElementById('turn-announcement');
   if (!el) return;
   document.getElementById('turn-ann-name').textContent = playerName;
@@ -403,6 +430,67 @@ function showTurnAnnouncement(playerName, playerIdx) {
     el.classList.remove('visible');
     _turnAnnTimeout = null;
   }, 2400);
+}
+
+// ---------------------------------------------------------------------------
+// Board lockout — post-turn "remove darts" window
+// ---------------------------------------------------------------------------
+const LOCKOUT_MS      = 7000;
+const DART_DEBOUNCE_MS = 400;
+
+function startBoardLockout() {
+  clearLockout();
+  app._boardLocked = true;
+  _showRemoveDartsOverlay(LOCKOUT_MS);
+  app._lockoutTimer = setTimeout(endBoardLockout, LOCKOUT_MS);
+}
+
+function endBoardLockout() {
+  const pending = app._pendingAnnouncement;
+  clearLockout();
+  if (pending) showTurnAnnouncement(pending.playerName, pending.playerIdx);
+}
+
+function clearLockout() {
+  app._boardLocked = false;
+  app._pendingAnnouncement = null;
+  if (app._lockoutTimer)    { clearTimeout(app._lockoutTimer);    app._lockoutTimer    = null; }
+  if (app._lockoutInterval) { clearInterval(app._lockoutInterval); app._lockoutInterval = null; }
+  _hideRemoveDartsOverlay();
+}
+
+function _showRemoveDartsOverlay(ms) {
+  const el       = document.getElementById('remove-darts-overlay');
+  const ring     = document.getElementById('rdo-progress-ring');
+  const countEl  = document.getElementById('rdo-countdown');
+  if (!el) return;
+
+  const secs = Math.round(ms / 1000);
+  countEl.textContent = secs;
+
+  // Restart ring drain animation
+  ring.style.animation = 'none';
+  void ring.offsetWidth;
+  ring.style.animationDuration = (ms / 1000) + 's';
+  ring.style.animation = `rdo-drain ${ms / 1000}s linear forwards`;
+
+  el.classList.add('visible');
+
+  let remaining = secs;
+  app._lockoutInterval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      countEl.textContent = remaining;
+    } else {
+      clearInterval(app._lockoutInterval);
+      app._lockoutInterval = null;
+    }
+  }, 1000);
+}
+
+function _hideRemoveDartsOverlay() {
+  const el = document.getElementById('remove-darts-overlay');
+  if (el) el.classList.remove('visible');
 }
 
 // ---------------------------------------------------------------------------
@@ -557,6 +645,7 @@ function renderPlayerInputs() {
 }
 
 function startGame() {
+  clearLockout();
   app._prevActiveCkt = -1;
   // Read current player names from inputs
   const inputs = document.querySelectorAll('#player-list input[type="text"]');
@@ -581,6 +670,7 @@ function startGame() {
 }
 
 function resumeGame(saved) {
+  clearLockout();
   if (saved.type === 'Game01') {
     app.game = Game01.restore(saved);
     renderGame01();
@@ -601,6 +691,7 @@ function initGame01Screen() {
 
   document.getElementById('btn-undo-01').addEventListener('click', () => {
     if (app.game && app.game instanceof Game01) {
+      clearLockout();
       if (app.game.undo()) {
         renderGame01();
         saveGame();
@@ -610,7 +701,10 @@ function initGame01Screen() {
 
   document.getElementById('btn-skip-01').addEventListener('click', () => {
     if (app.game && app.game instanceof Game01) {
+      const prevIdx = app.game.state.currentPlayerIndex;
       if (app.game.skipTurn()) {
+        const s = app.game.state;
+        if (s.phase !== 'won' && s.currentPlayerIndex !== prevIdx) startBoardLockout();
         renderGame01();
         saveGame();
       }
@@ -831,6 +925,7 @@ function initCricketScreen() {
 
   document.getElementById('btn-undo-ckt').addEventListener('click', () => {
     if (app.game && app.game instanceof GameCricket) {
+      clearLockout();
       if (app.game.undo()) {
         renderCricket();
         saveGame();
@@ -840,7 +935,10 @@ function initCricketScreen() {
 
   document.getElementById('btn-skip-ckt').addEventListener('click', () => {
     if (app.game && app.game instanceof GameCricket) {
+      const prevIdx = app.game.state.currentPlayerIndex;
       if (app.game.skipTurn()) {
+        const s = app.game.state;
+        if (s.phase !== 'won' && s.currentPlayerIndex !== prevIdx) startBoardLockout();
         renderCricket();
         saveGame();
       }
@@ -1077,12 +1175,30 @@ function updateCricketSide() {
 
 // ---------------------------------------------------------------------------
 // Dart handler — called by BLE and manual entry
+// bypassGuards: true for manual entry (skips debounce + lockout)
 // ---------------------------------------------------------------------------
-function handleDart(segment) {
+function handleDart(segment, bypassGuards = false) {
   if (!app.game) return;
 
+  if (!bypassGuards) {
+    // Inter-dart debounce — filters double-fire and fast removal signals
+    const now = Date.now();
+    if (now - app._lastDartTime < DART_DEBOUNCE_MS) return;
+    // Post-turn lockout — board ignores events while players remove darts
+    if (app._boardLocked) return;
+    app._lastDartTime = now;
+  }
+
   if (app.game instanceof Game01) {
+    const prevPlayerIdx = app.game.state.currentPlayerIndex;
     const result = app.game.throwDart(segment);
+    const s = app.game.state;
+
+    // Start lockout before rendering so the turn announcement is suppressed
+    if (s.phase !== 'won' && s.currentPlayerIndex !== prevPlayerIdx) {
+      startBoardLockout();
+    }
+
     renderGame01();
 
     // Hide bust banner by default; the result.bust drives the toast
@@ -1095,11 +1211,11 @@ function handleDart(segment) {
       showToast('Need a double to start!', 'info');
     }
     if (result.win) {
-      const winnerName = app.game.state.players[app.game.state.winner].name;
+      const winnerName = s.players[s.winner].name;
       showWin(winnerName);
     } else {
       // Big-score celebration after the 3rd dart
-      const turn = app.game.state.currentTurn;
+      const turn = s.currentTurn;
       if (turn.dartCount >= 3 && !result.bust) {
         const turnTotal = turn.darts.reduce(
           (sum, d) => sum + (d.counted ? d.segment.score : 0), 0
@@ -1115,7 +1231,15 @@ function handleDart(segment) {
     }
 
   } else if (app.game instanceof GameCricket) {
+    const prevPlayerIdx = app.game.state.currentPlayerIndex;
     const result = app.game.throwDart(segment);
+    const s = app.game.state;
+
+    // Start lockout before rendering so the turn announcement is suppressed
+    if (s.phase !== 'won' && s.currentPlayerIndex !== prevPlayerIdx) {
+      startBoardLockout();
+    }
+
     renderCricket();
 
     if (result.pointsScored >= 50) {
@@ -1124,7 +1248,6 @@ function handleDart(segment) {
       showToast('+' + result.pointsScored, 'good', 1500);
     }
     if (result.win) {
-      const s          = app.game.state;
       const winnerName = s.players[s.winner].name;
       recordCricketResult(s.players.map(p => p.name), winnerName);
       showWin(winnerName);
@@ -1231,7 +1354,7 @@ function initManualModal() {
   document.getElementById('btn-modal-throw').addEventListener('click', () => {
     if (_manualState.segment) {
       closeManualEntry();
-      handleDart(_manualState.segment);
+      handleDart(_manualState.segment, true); // manual entry bypasses debounce + lockout
     }
   });
   document.getElementById('btn-modal-cancel').addEventListener('click', closeManualEntry);
@@ -1266,6 +1389,7 @@ function spawnWinParticles() {
 }
 
 function showWin(playerName) {
+  clearLockout();
   document.getElementById('win-name').textContent = playerName;
   document.getElementById('win-overlay').classList.add('visible');
   spawnWinParticles();
@@ -1287,6 +1411,7 @@ function initWinOverlay() {
 
 function startRematch() {
   if (!app.game) return;
+  clearLockout();
   app._prevActiveCkt = -1;
   const s = app.game.state;
   const playerNames = s.players.map(p => p.name);
@@ -1437,6 +1562,11 @@ window.addEventListener('DOMContentLoaded', () => {
   initManualModal();
   initWinOverlay();
   renderLeaderboard();
+
+  // Tap to dismiss the remove-darts lockout overlay early
+  document.getElementById('remove-darts-overlay').addEventListener('click', () => {
+    endBoardLockout();
+  });
 
   // Tap anywhere on the turn announcement to dismiss early
   document.getElementById('turn-announcement').addEventListener('click', () => {
