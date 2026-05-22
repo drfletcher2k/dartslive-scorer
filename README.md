@@ -154,7 +154,7 @@ npm install
 npm start
 ```
 
-Open from **any device on the network**: `http://192.168.1.199:3000`
+Open from **any device on the network**: `http://192.168.1.199:3180`
 
 History is saved to `data/history.json` on that PC and is never committed to git.
 
