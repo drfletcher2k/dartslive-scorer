@@ -64,7 +64,9 @@ class DartsLiveBLE extends EventTarget {
 
   _onNotify(e) {
     const bytes = new Uint8Array(e.target.value.buffer);
+    console.log('[BLE] raw bytes:', Array.from(bytes).map(b => '0x' + b.toString(16).padStart(2,'0')).join(' '));
     const seg = DartsLiveBLE.parseDart(bytes);
+    console.log('[BLE] parsed segment:', seg);
     if (seg) this.dispatchEvent(new CustomEvent('dart', { detail: seg }));
   }
 
