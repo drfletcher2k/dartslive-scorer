@@ -1553,6 +1553,109 @@ table.cricket-table {
 }
 
 /* ============================================================
+   REMOVE DARTS OVERLAY — Post-turn lockout screen
+   ============================================================ */
+
+@keyframes rdo-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rdo-pulse-text {
+  0%, 100% { opacity: 1;    text-shadow: 0 0 30px var(--active-glow); }
+  50%       { opacity: 0.72; text-shadow: 0 0 70px var(--active-glow), 0 0 110px rgba(255,140,0,0.22); }
+}
+
+@keyframes rdo-drain {
+  from { stroke-dashoffset: 0;       }
+  to   { stroke-dashoffset: 226.195; }
+}
+
+.remove-darts-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 440;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: rgba(4,6,12,0.93);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.remove-darts-overlay.visible {
+  display: flex;
+  animation: rdo-fade-in 0.28s ease both;
+}
+
+.rdo-label {
+  font-family: var(--font-score);
+  font-size: clamp(2.8rem, 11vw, 6rem);
+  font-weight: 900;
+  color: var(--active);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px var(--active-glow);
+  animation: rdo-pulse-text 1.4s ease-in-out infinite;
+}
+
+.rdo-ring-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rdo-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.rdo-track {
+  fill: none;
+  stroke: rgba(255,140,0,0.18);
+  stroke-width: 6;
+}
+
+.rdo-progress {
+  fill: none;
+  stroke: var(--active);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 226.195;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 5px var(--active-glow));
+}
+
+.rdo-countdown {
+  font-family: var(--font-score);
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--active);
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 20px var(--active-glow);
+}
+
+.rdo-sub {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* ============================================================
    Logo — Setup & BLE bar
    ============================================================ */
 .setup-logo-img {
