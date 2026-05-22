@@ -58,6 +58,7 @@
             <button class="game-type-btn active" data-type="501">501</button>
             <button class="game-type-btn" data-type="701">701</button>
             <button class="game-type-btn" data-type="Cricket">Cricket</button>
+            <button class="game-type-btn" data-type="Cutthroat">Cutthroat</button>
           </div>
         </div>
 
@@ -594,7 +595,7 @@ function initSetupScreen() {
       btn.classList.add('active');
       app.gameType = btn.dataset.type;
       const sec = document.getElementById('options-01-section');
-      sec.style.display = app.gameType === 'Cricket' ? 'none' : '';
+      sec.style.display = (app.gameType === 'Cricket' || app.gameType === 'Cutthroat') ? 'none' : '';
     });
   });
 
@@ -715,6 +716,10 @@ function startGame() {
     app.game = new GameCricket({ players: app.players });
     renderCricket();
     showScreen('cricket');
+  } else if (app.gameType === 'Cutthroat') {
+    app.game = new GameCutthroatCricket({ players: app.players });
+    renderCricket();
+    showScreen('cricket');
   } else {
     const startScore = parseInt(app.gameType, 10);
     app.game = new Game01({
@@ -735,6 +740,10 @@ function resumeGame(saved) {
     app.game = Game01.restore(saved);
     renderGame01();
     showScreen('01');
+  } else if (saved.type === 'GameCutthroatCricket') {
+    app.game = GameCutthroatCricket.restore(saved);
+    renderCricket();
+    showScreen('cricket');
   } else if (saved.type === 'GameCricket') {
     app.game = GameCricket.restore(saved);
     renderCricket();
@@ -1076,7 +1085,8 @@ function updateCricketGrid() {
     const cls = isActive ? '' : 'ckt-inactive-cell';
     return `<td class="${cls}" style="${style}">${p.score}</td>`;
   }).join('');
-  scoreRow.innerHTML = '<td>PTS</td>' + scoreCells;
+  const ptsLabel = (app.game instanceof GameCutthroatCricket) ? 'PENALTY' : 'PTS';
+  scoreRow.innerHTML = `<td>${ptsLabel}</td>` + scoreCells;
   tbody.appendChild(scoreRow);
 }
 
@@ -1119,7 +1129,7 @@ function updateCricketSide() {
       cktNtbBar.style.setProperty('--pcg',   wpc.glow);
       cktNtbBar.style.setProperty('--pcdim', wpc.dim);
     } else {
-      if (cktLbl) cktLbl.textContent = 'NOW THROWING';
+      if (cktLbl) cktLbl.textContent = (app.game instanceof GameCutthroatCricket) ? 'CUTTHROAT · NOW THROWING' : 'NOW THROWING';
       cktNtbName.textContent = s.players[s.currentPlayerIndex].name;
       cktNtbBar.classList.remove('game-over');
       const apc = getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex);
@@ -1157,7 +1167,9 @@ function updateCricketSide() {
       if (lastDart.pointsScored > 0) {
         lastResultEl.style.color = 'var(--green)';
         lastResultEl.style.textShadow = '0 0 20px var(--green-glow)';
-        lastPtsEl.textContent = '+' + lastDart.pointsScored + ' PTS';
+        lastPtsEl.textContent = (app.game instanceof GameCutthroatCricket)
+          ? 'DEALT +' + lastDart.pointsScored
+          : '+' + lastDart.pointsScored + ' PTS';
       } else {
         lastResultEl.style.color = apc.color;
         lastResultEl.style.textShadow = '0 0 20px ' + apc.glow;
@@ -1305,10 +1317,11 @@ function handleDart(segment, bypassGuards = false) {
 
     renderCricket();
 
+    const isCutthroat = app.game instanceof GameCutthroatCricket;
     if (result.pointsScored >= 50) {
-      showToast('+' + result.pointsScored + ' !!', 'epic', 2200);
+      showToast(isCutthroat ? 'DEALT +' + result.pointsScored + ' !!' : '+' + result.pointsScored + ' !!', 'epic', 2200);
     } else if (result.pointsScored > 0) {
-      showToast('+' + result.pointsScored, 'good', 1500);
+      showToast(isCutthroat ? 'DEALT +' + result.pointsScored : '+' + result.pointsScored, 'good', 1500);
     }
     if (result.win) {
       const winnerName = s.players[s.winner].name;
@@ -1488,6 +1501,10 @@ function startRematch() {
     });
     renderGame01();
     showScreen('01');
+  } else if (app.game instanceof GameCutthroatCricket) {
+    app.game = new GameCutthroatCricket({ players: playerNames });
+    renderCricket();
+    showScreen('cricket');
   } else if (app.game instanceof GameCricket) {
     app.game = new GameCricket({ players: playerNames });
     renderCricket();
@@ -1522,7 +1539,7 @@ function showResumeBanner(saved) {
   const banner = document.getElementById('resume-banner');
   let desc = saved.type === 'Game01'
     ? (saved.options.startScore || '?') + ' game'
-    : 'Cricket game';
+    : saved.type === 'GameCutthroatCricket' ? 'Cutthroat Cricket game' : 'Cricket game';
   banner.querySelector('span').textContent = 'Resume ' + desc + ' in progress';
   banner.classList.add('visible');
 }
