@@ -199,6 +199,13 @@ input:focus {
   100% { background: var(--bg); }
 }
 
+/* Active player name blink */
+@keyframes name-blink {
+  0%, 42%  { opacity: 1; }
+  55%, 97% { opacity: 0.18; }
+  100%     { opacity: 1; }
+}
+
 /* Toast */
 @keyframes toast-in {
   from { transform: translateX(120%); opacity: 0; }
@@ -382,6 +389,53 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
 .player-row { display: flex; gap: 8px; align-items: center; }
 .player-row input { flex: 1; }
 
+.player-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.15);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.player-name-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.player-name-select {
+  width: 100%;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 44px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234e6a8a' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+.player-name-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,180,224,0.15);
+}
+.player-name-select option { background: var(--surface2); color: var(--text); }
+
+.player-name-manual {
+  display: none;
+}
+
 .player-row .remove-btn {
   min-height: 44px;
   min-width: 44px;
@@ -533,10 +587,10 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   letter-spacing: 0.5px;
 }
 
-/* Inactive — dimmed and shrunk */
+/* Inactive — visible but clearly secondary */
 .player-cards:not([data-phase="won"]) .player-card:not(.active):not(.winner) {
-  opacity: 0.36;
-  filter: brightness(0.55);
+  opacity: 0.5;
+  filter: brightness(0.65) saturate(0.7);
   transform: scale(0.93);
 }
 
@@ -547,7 +601,14 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   transform: scale(1.02);
   animation: active-border-pulse 2.4s ease-in-out infinite;
 }
-.player-card.active .card-name  { color: var(--pc, var(--active)); opacity: 0.85; }
+.player-card.active .card-name {
+  color: var(--pc, var(--active));
+  opacity: 1;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  animation: name-blink 0.9s ease-in-out infinite;
+}
 .player-card.active .card-score { color: var(--text); }
 
 /* YOUR TURN badge */
@@ -844,6 +905,14 @@ table.cricket-table {
   color: var(--active);
   background: rgba(255,140,0,0.1);
 }
+.cricket-table thead th.ckt-active-player {
+  font-size: 16px;
+  font-weight: 800;
+  animation: name-blink 0.9s ease-in-out infinite;
+}
+.cricket-table thead th.ckt-inactive-player {
+  opacity: 0.42;
+}
 
 .cricket-table .num-col {
   font-family: var(--font-score);
@@ -859,11 +928,14 @@ table.cricket-table {
   font-weight: 700;
   color: var(--text);
   width: 90px;
-  transition: color 0.2s, background 0.2s;
+  transition: color 0.2s, background 0.2s, opacity 0.2s;
 }
 .cricket-table .marks-cell.active-player {
   color: var(--active);
   background: rgba(255,140,0,0.05);
+}
+.cricket-table .marks-cell.ckt-inactive-cell {
+  opacity: 0.38;
 }
 
 .cricket-table .score-row td {
@@ -878,6 +950,9 @@ table.cricket-table {
 .cricket-table .score-row td.active-player {
   color: var(--active);
   background: rgba(255,140,0,0.1);
+}
+.cricket-table .score-row td.ckt-inactive-cell {
+  opacity: 0.38;
 }
 
 /* Globally closed rows */
