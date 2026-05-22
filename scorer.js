@@ -181,6 +181,7 @@ class GameCricket {
       currentPlayerIndex: 0,
       currentTurn: { darts: [], dartCount: 0 },
       history: [],
+      totalTurns: 0,
       winner: null,
       phase: 'playing',
     };
@@ -276,6 +277,7 @@ class GameCricket {
     };
     s.history.unshift(entry);
     if (s.history.length > 9) s.history.length = 9;
+    s.totalTurns = (s.totalTurns || 0) + 1;
 
     if (s.phase !== 'won') {
       s.currentPlayerIndex = (s.currentPlayerIndex + 1) % s.players.length;

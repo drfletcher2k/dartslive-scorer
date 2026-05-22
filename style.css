@@ -352,6 +352,28 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   padding: 14px 0;
 }
 
+.lowest-rounds-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 5px;
+  border-top: 1px solid var(--border);
+}
+.lr-name {
+  font-weight: 600;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+.lr-count {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--yellow);
+}
+
 .setup-section-label {
   font-size: 10px;
   text-transform: uppercase;
