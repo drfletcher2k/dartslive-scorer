@@ -140,7 +140,38 @@ dartslive-scorer/
 
 ---
 
-## Serving for tablet use
+## Running the network server (shared leaderboard)
+
+The app includes a small Express server so leaderboard history is shared across all
+devices on your network and persists on disk instead of in browser localStorage.
+
+### One-time setup (on the always-on PC at 192.168.1.199)
+
+```bash
+git clone https://github.com/drfletcher2k/dartslive-scorer.git
+cd dartslive-scorer
+npm install
+npm start
+```
+
+Open from **any device on the network**: `http://192.168.1.199:3000`
+
+History is saved to `data/history.json` on that PC and is never committed to git.
+
+### Keeping the server running
+
+To survive reboots, add a startup task (Windows Task Scheduler) or use PM2:
+
+```bash
+npm install -g pm2
+pm2 start server.js --name dartslive
+pm2 save
+pm2 startup   # follow the printed command to enable on boot
+```
+
+---
+
+## Serving for tablet use (legacy — no shared leaderboard)
 
 ```bash
 # Find your LAN IP
@@ -151,5 +182,5 @@ ip -4 addr show          # Linux
 python3 -m http.server 8080 --bind 0.0.0.0
 ```
 
-Open `http://<your-lan-ip>:8080/darts-scorer.html` in Chrome on the tablet.
+Open `http://<your-lan-ip>:8080/index.html` in Chrome on the tablet.
 Web Bluetooth works over LAN when the origin is a private IP (no HTTPS required for `192.168.x.x`).

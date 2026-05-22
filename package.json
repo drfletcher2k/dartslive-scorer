@@ -1,0 +1,12 @@
+{
+  "name": "dartslive-scorer",
+  "version": "1.0.0",
+  "description": "Darts live scorer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

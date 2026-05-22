@@ -1557,17 +1557,35 @@ function escHtml(str) {
 // ---------------------------------------------------------------------------
 // Cricket leaderboard — persistent win history
 // ---------------------------------------------------------------------------
-function loadCricketHistory() {
+const USE_API = location.protocol !== 'file:';
+
+async function loadCricketHistory() {
+  if (USE_API) {
+    try {
+      const r = await fetch('/api/history');
+      return r.ok ? await r.json() : [];
+    } catch (e) { return []; }
+  }
   try {
     const raw = localStorage.getItem(LS_HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (e) { return []; }
 }
 
-function recordCricketResult(players, winner) {
-  const history = loadCricketHistory();
-  history.push({ ts: Date.now(), players, winner, fieldSize: players.length });
-  try { localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
+async function recordCricketResult(players, winner) {
+  if (USE_API) {
+    try {
+      await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ts: Date.now(), players, winner, fieldSize: players.length })
+      });
+    } catch (e) {}
+  } else {
+    const history = await loadCricketHistory();
+    history.push({ ts: Date.now(), players, winner, fieldSize: players.length });
+    try { localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
+  }
   renderLeaderboard();
 }
 
@@ -1586,8 +1604,8 @@ function computeLeaderboard(history) {
     .sort((a, b) => b.ratio - a.ratio || b.wins - a.wins);
 }
 
-function renderLeaderboard() {
-  const rows  = computeLeaderboard(loadCricketHistory());
+async function renderLeaderboard() {
+  const rows  = computeLeaderboard(await loadCricketHistory());
   const tbody = document.getElementById('lb-tbody');
   const empty = document.getElementById('lb-empty');
   if (!tbody) return;
