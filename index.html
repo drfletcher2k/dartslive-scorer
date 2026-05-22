@@ -371,14 +371,30 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Player colors — pulled from The Fletchers logo (red + blue + variants)
+// Player colors — one per predefined player, then fallbacks for unknowns
 // ---------------------------------------------------------------------------
 const PLAYER_COLORS = [
-  { color: '#E83535', glow: 'rgba(232,53,53,0.45)',   dim: 'rgba(232,53,53,0.09)'   }, // logo red
-  { color: '#3B7EE8', glow: 'rgba(59,126,232,0.45)',  dim: 'rgba(59,126,232,0.09)'  }, // logo blue
-  { color: '#FF6B6B', glow: 'rgba(255,107,107,0.45)', dim: 'rgba(255,107,107,0.09)' }, // light red
-  { color: '#5AB8F5', glow: 'rgba(90,184,245,0.45)',  dim: 'rgba(90,184,245,0.09)'  }, // sky blue
+  { color: '#E83535', glow: 'rgba(232,53,53,0.45)',   dim: 'rgba(232,53,53,0.09)'   }, // Red    — Dan
+  { color: '#3B7EE8', glow: 'rgba(59,126,232,0.45)',  dim: 'rgba(59,126,232,0.09)'  }, // Blue   — Albie
+  { color: '#FF8C00', glow: 'rgba(255,140,0,0.45)',   dim: 'rgba(255,140,0,0.09)'   }, // Orange — Tobby
+  { color: '#A855F7', glow: 'rgba(168,85,247,0.45)',  dim: 'rgba(168,85,247,0.09)'  }, // Purple — Boo Piece
+  { color: '#00D97E', glow: 'rgba(0,217,126,0.45)',   dim: 'rgba(0,217,126,0.09)'   }, // Green  — Jack
+  { color: '#00B4E0', glow: 'rgba(0,180,224,0.45)',   dim: 'rgba(0,180,224,0.09)'   }, // Teal   — Edwards
+  { color: '#FF6B9D', glow: 'rgba(255,107,157,0.45)', dim: 'rgba(255,107,157,0.09)' }, // Pink   — BB
+  { color: '#FFCC00', glow: 'rgba(255,204,0,0.45)',   dim: 'rgba(255,204,0,0.09)'   }, // Yellow — Dapp
+  { color: '#5AB8F5', glow: 'rgba(90,184,245,0.45)',  dim: 'rgba(90,184,245,0.09)'  }, // Sky    — Stoner
 ];
+
+// Predefined roster — order matches PLAYER_COLORS indices
+const PREDEFINED_PLAYERS = ['Dan', 'Albie', 'Tobby', 'Boo Piece', 'Jack', 'Edwards', 'BB', 'Dapp', 'Stoner'];
+
+const PLAYER_NAME_COLOR_IDX = {};
+PREDEFINED_PLAYERS.forEach((name, i) => { PLAYER_NAME_COLOR_IDX[name] = i; });
+
+function getPlayerColor(name, fallbackIdx) {
+  const idx = PLAYER_NAME_COLOR_IDX[name != null ? String(name).trim() : ''];
+  return idx !== undefined ? PLAYER_COLORS[idx] : PLAYER_COLORS[fallbackIdx % PLAYER_COLORS.length];
+}
 
 // ---------------------------------------------------------------------------
 // App state
@@ -387,7 +403,7 @@ const app = {
   ble: null,
   game: null,
   gameType: '501',
-  players: ['Player 1', 'Player 2'],
+  players: ['Dan', 'Albie'],
   doubleIn: false,
   doubleOut: true,
   _prevActiveCkt: -1,
@@ -419,7 +435,7 @@ function showTurnAnnouncement(playerName, playerIdx) {
   const el = document.getElementById('turn-announcement');
   if (!el) return;
   document.getElementById('turn-ann-name').textContent = playerName;
-  const pc = PLAYER_COLORS[playerIdx !== undefined ? playerIdx % PLAYER_COLORS.length : 0];
+  const pc = getPlayerColor(playerName, playerIdx !== undefined ? playerIdx : 0);
   el.style.setProperty('--ann-color', pc.color);
   el.style.setProperty('--ann-glow', pc.glow);
   el.classList.remove('visible');
@@ -615,19 +631,59 @@ function initSetupScreen() {
 function renderPlayerInputs() {
   const list = document.getElementById('player-list');
   list.innerHTML = '';
+
   app.players.forEach((name, i) => {
+    const isManual = !PREDEFINED_PLAYERS.includes(name);
+    const pc = getPlayerColor(name, i);
+
+    const optionsHtml = PREDEFINED_PLAYERS.map(n =>
+      `<option value="${escHtml(n)}"${n === name ? ' selected' : ''}>${escHtml(n)}</option>`
+    ).join('') + `<option value="__manual__"${isManual ? ' selected' : ''}>Manual Entry</option>`;
+
     const row = document.createElement('div');
     row.className = 'player-row';
+    row.dataset.idx = i;
     row.innerHTML = `
-      <input type="text" value="${escHtml(name)}" placeholder="Player ${i+1}" data-idx="${i}" />
+      <div class="player-color-dot" style="background:${pc.color};box-shadow:0 0 8px ${pc.glow}"></div>
+      <div class="player-name-field">
+        <select class="player-name-select" data-idx="${i}">${optionsHtml}</select>
+        <input type="text" class="player-name-manual" data-idx="${i}"
+          placeholder="Enter name"
+          value="${isManual ? escHtml(name) : ''}"
+          style="display:${isManual ? 'block' : 'none'}" />
+      </div>
       <button class="remove-btn" data-idx="${i}" ${app.players.length <= 1 ? 'disabled' : ''}>✕</button>
     `;
     list.appendChild(row);
   });
 
-  list.querySelectorAll('input[type="text"]').forEach(inp => {
+  list.querySelectorAll('.player-name-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const idx = +sel.dataset.idx;
+      const row = sel.closest('.player-row');
+      const manualInput = row.querySelector('.player-name-manual');
+      if (sel.value === '__manual__') {
+        manualInput.style.display = 'block';
+        manualInput.focus();
+        app.players[idx] = manualInput.value.trim() || ('Player ' + (idx + 1));
+      } else {
+        manualInput.style.display = 'none';
+        app.players[idx] = sel.value;
+      }
+      const pc = getPlayerColor(app.players[idx], idx);
+      row.querySelector('.player-color-dot').style.background = pc.color;
+      row.querySelector('.player-color-dot').style.boxShadow = '0 0 8px ' + pc.glow;
+    });
+  });
+
+  list.querySelectorAll('.player-name-manual').forEach(inp => {
     inp.addEventListener('input', () => {
-      app.players[+inp.dataset.idx] = inp.value || ('Player ' + (+inp.dataset.idx + 1));
+      const idx = +inp.dataset.idx;
+      app.players[idx] = inp.value.trim() || ('Player ' + (idx + 1));
+      const pc = getPlayerColor(app.players[idx], idx);
+      const dot = inp.closest('.player-row').querySelector('.player-color-dot');
+      dot.style.background = pc.color;
+      dot.style.boxShadow = '0 0 8px ' + pc.glow;
     });
   });
 
@@ -647,9 +703,13 @@ function renderPlayerInputs() {
 function startGame() {
   clearLockout();
   app._prevActiveCkt = -1;
-  // Read current player names from inputs
-  const inputs = document.querySelectorAll('#player-list input[type="text"]');
-  app.players = Array.from(inputs).map((inp, i) => inp.value.trim() || ('Player ' + (i + 1)));
+  // Read current player names from selects / manual inputs
+  app.players = Array.from(document.querySelectorAll('#player-list .player-row')).map((row, i) => {
+    const sel = row.querySelector('.player-name-select');
+    if (sel && sel.value !== '__manual__') return sel.value;
+    const manual = row.querySelector('.player-name-manual');
+    return (manual && manual.value.trim()) || ('Player ' + (i + 1));
+  });
 
   if (app.gameType === 'Cricket') {
     app.game = new GameCricket({ players: app.players });
@@ -764,7 +824,7 @@ function updatePlayerCards01() {
     const card = document.getElementById('card-01-' + i);
     if (!card) return;
 
-    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const pc = getPlayerColor(p.name, i);
     card.style.setProperty('--pc',    pc.color);
     card.style.setProperty('--pcg',   pc.glow);
     card.style.setProperty('--pcdim', pc.dim);
@@ -804,7 +864,7 @@ function updatePlayerCards01() {
       if (lbl) lbl.textContent = 'WINNER';
       ntbName.textContent = s.players[s.winner].name;
       ntbBar.classList.add('game-over');
-      const wpc = PLAYER_COLORS[s.winner % PLAYER_COLORS.length];
+      const wpc = getPlayerColor(s.players[s.winner].name, s.winner);
       ntbBar.style.setProperty('--pc',    wpc.color);
       ntbBar.style.setProperty('--pcg',   wpc.glow);
       ntbBar.style.setProperty('--pcdim', wpc.dim);
@@ -812,7 +872,7 @@ function updatePlayerCards01() {
       if (lbl) lbl.textContent = 'NOW THROWING';
       ntbName.textContent = s.players[s.currentPlayerIndex].name;
       ntbBar.classList.remove('game-over');
-      const apc = PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length];
+      const apc = getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex);
       ntbBar.style.setProperty('--pc',    apc.color);
       ntbBar.style.setProperty('--pcg',   apc.glow);
       ntbBar.style.setProperty('--pcdim', apc.dim);
@@ -900,7 +960,7 @@ function updateHistory01() {
 
     const pIdx = s.players.findIndex(p => p.name === entry.playerName);
     if (pIdx >= 0) {
-      const pc = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+      const pc = getPlayerColor(entry.playerName, pIdx);
       el.style.borderLeft = '3px solid ' + pc.color;
       el.style.background  = pc.dim;
     }
@@ -973,12 +1033,13 @@ function updateCricketGrid() {
   thead.innerHTML = '';
   const hrow = document.createElement('tr');
   const headerCells = s.players.map((p, i) => {
-    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const pc = getPlayerColor(p.name, i);
     const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
     const style = isActive
       ? `color:${pc.color};text-shadow:0 0 12px ${pc.glow};border-bottom:2px solid ${pc.color}`
-      : '';
-    return `<th style="${style}">${escHtml(p.name)}</th>`;
+      : `color:${pc.color}`;
+    const cls = isActive ? 'ckt-active-player' : 'ckt-inactive-player';
+    return `<th class="${cls}" style="${style}">${escHtml(p.name)}</th>`;
   }).join('');
   hrow.innerHTML = '<th></th>' + headerCells;
   thead.appendChild(hrow);
@@ -994,11 +1055,12 @@ function updateCricketGrid() {
 
     const label = n === 25 ? 'Bull' : String(n);
     const markCells = s.players.map((p, i) => {
-      const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+      const pc = getPlayerColor(p.name, i);
       const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
-      const style = isActive ? `background:${pc.dim};color:${pc.color}` : '';
+      const style = isActive ? `background:${pc.dim};color:${pc.color}` : `color:${pc.color}`;
+      const cls = 'marks-cell' + (isActive ? '' : ' ckt-inactive-cell');
       const rawMarks = p.marks[n];
-      return `<td class="marks-cell" style="${style}">${GameCricket.marksDisplay(rawMarks)}</td>`;
+      return `<td class="${cls}" style="${style}">${GameCricket.marksDisplay(rawMarks)}</td>`;
     }).join('');
     tr.innerHTML = `<td class="num-col">${label}</td>` + markCells;
     tbody.appendChild(tr);
@@ -1008,10 +1070,11 @@ function updateCricketGrid() {
   const scoreRow = document.createElement('tr');
   scoreRow.className = 'score-row';
   const scoreCells = s.players.map((p, i) => {
-    const pc = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const pc = getPlayerColor(p.name, i);
     const isActive = i === s.currentPlayerIndex && s.phase !== 'won';
-    const style = isActive ? `color:${pc.color};font-weight:900` : '';
-    return `<td style="${style}">${p.score}</td>`;
+    const style = isActive ? `color:${pc.color};font-weight:900` : `color:${pc.color}`;
+    const cls = isActive ? '' : 'ckt-inactive-cell';
+    return `<td class="${cls}" style="${style}">${p.score}</td>`;
   }).join('');
   scoreRow.innerHTML = '<td>PTS</td>' + scoreCells;
   tbody.appendChild(scoreRow);
@@ -1026,7 +1089,7 @@ function updateCricketSide() {
   const lbl = document.getElementById('ckt-turn-label');
   if (s.phase !== 'won') {
     const activeIdx = s.currentPlayerIndex;
-    const apc = PLAYER_COLORS[activeIdx % PLAYER_COLORS.length];
+    const apc = getPlayerColor(s.players[activeIdx].name, activeIdx);
     lbl.textContent = s.players[activeIdx].name + "'s Turn";
     lbl.style.color = apc.color;
     lbl.style.textShadow = '0 0 16px ' + apc.glow;
@@ -1051,7 +1114,7 @@ function updateCricketSide() {
       if (cktLbl) cktLbl.textContent = 'WINNER';
       cktNtbName.textContent = s.players[s.winner].name;
       cktNtbBar.classList.add('game-over');
-      const wpc = PLAYER_COLORS[s.winner % PLAYER_COLORS.length];
+      const wpc = getPlayerColor(s.players[s.winner].name, s.winner);
       cktNtbBar.style.setProperty('--pc',    wpc.color);
       cktNtbBar.style.setProperty('--pcg',   wpc.glow);
       cktNtbBar.style.setProperty('--pcdim', wpc.dim);
@@ -1059,7 +1122,7 @@ function updateCricketSide() {
       if (cktLbl) cktLbl.textContent = 'NOW THROWING';
       cktNtbName.textContent = s.players[s.currentPlayerIndex].name;
       cktNtbBar.classList.remove('game-over');
-      const apc = PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length];
+      const apc = getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex);
       cktNtbBar.style.setProperty('--pc',    apc.color);
       cktNtbBar.style.setProperty('--pcg',   apc.glow);
       cktNtbBar.style.setProperty('--pcdim', apc.dim);
@@ -1072,8 +1135,8 @@ function updateCricketSide() {
   const lastZone     = document.getElementById('ckt-last-throw-zone');
   if (lastResultEl) {
     const apc = (s.phase !== 'won')
-      ? PLAYER_COLORS[s.currentPlayerIndex % PLAYER_COLORS.length]
-      : (s.winner !== null ? PLAYER_COLORS[s.winner % PLAYER_COLORS.length] : PLAYER_COLORS[0]);
+      ? getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex)
+      : (s.winner !== null ? getPlayerColor(s.players[s.winner].name, s.winner) : PLAYER_COLORS[0]);
 
     const prevLastResult = lastResultEl.dataset.lastLabel || '';
 
@@ -1158,7 +1221,7 @@ function updateCricketSide() {
     el.className = 'history-entry';
     const pIdx = s.players.findIndex(p => p.name === entry.playerName);
     if (pIdx >= 0) {
-      const pc = PLAYER_COLORS[pIdx % PLAYER_COLORS.length];
+      const pc = getPlayerColor(entry.playerName, pIdx);
       el.style.borderLeft = '3px solid ' + pc.color;
       el.style.background  = pc.dim;
     }
@@ -1539,11 +1602,12 @@ function renderLeaderboard() {
   tbody.innerHTML = '';
   rows.forEach((p, i) => {
     const tr   = document.createElement('tr');
+    const pc   = getPlayerColor(p.name, i);
     const ratioDisplay = p.ratio.toFixed(1) + '×';
     const cls  = p.ratio > 1.05 ? 'lb-ratio lb-pos' : p.ratio < 0.95 ? 'lb-ratio lb-neg' : 'lb-ratio';
     tr.innerHTML =
       `<td class="lb-rank">${i + 1}</td>` +
-      `<td class="lb-name">${escHtml(p.name)}</td>` +
+      `<td class="lb-name" style="color:${pc.color}">${escHtml(p.name)}</td>` +
       `<td>${p.wins}</td>` +
       `<td>${p.games}</td>` +
       `<td class="${cls}">${ratioDisplay}</td>`;
