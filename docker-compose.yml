@@ -1,0 +1,10 @@
+services:
+  dartslive-scorer:
+    build: .
+    ports:
+      - "3180:3180"   # HTTPS
+      - "3181:3181"   # HTTP → redirects to HTTPS
+    volumes:
+      - ./data:/app/data     # game history — persists across restarts
+      - ./certs:/app/certs   # self-signed cert — generated once, reused
+    restart: unless-stopped
