@@ -1081,7 +1081,7 @@ table.cricket-table {
 
 .ckt-last-result {
   font-family: var(--font-score);
-  font-size: 38px;
+  font-size: clamp(16px, 4vw, 26px);
   font-weight: 900;
   color: var(--active);
   letter-spacing: 1px;
@@ -1106,37 +1106,75 @@ table.cricket-table {
 .cricket-turn-col {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .cricket-dart-chip {
+  flex: 1;
   background: var(--surface2);
   border: 1.5px dashed var(--border2);
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-family: var(--font-score);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--muted);
-  min-height: 46px;
+  border-radius: 14px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.cricket-dart-chip .chip-dart-icon {
-  width: 40px;
-  height: auto;
+/* Diamond icon inside each chip — same construction as ckt-dart-diamond but smaller */
+.chip-dart-diamond {
+  width: 62px;
+  height: 62px;
+  background: var(--bg);
+  border-radius: 5px;
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  opacity: 0.3;
+  border: 1px solid var(--border2);
+  overflow: visible;
+  opacity: 0.35;
   transition: opacity 0.2s;
 }
 
-.cricket-dart-chip .chip-text {
+.chip-dart-svg-wrap {
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chip-dart-svg-wrap svg {
+  width: 82px;
+  height: auto;
+}
+
+.chip-throw-text {
   flex: 1;
-  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.cricket-dart-chip .chip-text {
+  font-family: var(--font-score);
+  font-size: clamp(14px, 3.2vw, 22px);
+  font-weight: 900;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cricket-dart-chip .chip-text small {
@@ -1150,25 +1188,25 @@ table.cricket-table {
 .cricket-dart-chip.filled {
   border-style: solid;
   border-color: var(--border2);
-  color: var(--text);
 }
-.cricket-dart-chip.filled .chip-dart-icon { opacity: 0.75; }
+.cricket-dart-chip.filled .chip-text    { color: var(--text); }
+.cricket-dart-chip.filled .chip-dart-diamond { opacity: 0.75; }
 
 .cricket-dart-chip.scored {
   border-style: solid;
   border-color: var(--green);
-  color: var(--green);
   background: rgba(0,217,126,0.08);
-  box-shadow: 0 0 8px var(--green-glow);
+  box-shadow: 0 0 10px var(--green-glow);
 }
-.cricket-dart-chip.scored .chip-dart-icon { opacity: 1; }
+.cricket-dart-chip.scored .chip-text         { color: var(--green); }
+.cricket-dart-chip.scored .chip-dart-diamond { opacity: 1; }
 
 .cricket-dart-chip.next-slot {
   border-style: solid;
   border-color: var(--accent);
   animation: pulse-ring 1.6s ease-in-out infinite;
 }
-.cricket-dart-chip.next-slot .chip-dart-icon { opacity: 0.6; }
+.cricket-dart-chip.next-slot .chip-dart-diamond { opacity: 0.55; }
 
 .cricket-dart-chip.dart-landed {
   animation: dart-pop 0.42s cubic-bezier(0.34,1.56,0.64,1) both;
@@ -1750,6 +1788,194 @@ table.cricket-table {
   letter-spacing: 3px;
   text-transform: uppercase;
   opacity: 0.6;
+}
+
+/* ============================================================
+   TURN SUMMARY OVERLAY — pre-lockout turn review flash
+   ============================================================ */
+
+.turn-summary-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 435;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: rgba(4,6,12,0.95);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+.turn-summary-overlay.visible {
+  display: flex;
+  animation: rdo-fade-in 0.3s ease both;
+}
+
+.tso-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes tso-particle-burst {
+  0%   { transform: translate(var(--px), var(--py)) scale(0); opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(calc(var(--px) + var(--dx)), calc(var(--py) + var(--dy))) scale(1); opacity: 0; }
+}
+
+.tso-particle {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  animation: tso-particle-burst var(--dur, 1.2s) ease-out var(--delay, 0s) forwards;
+}
+
+.tso-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 500px;
+  padding: 24px 20px;
+  z-index: 1;
+  position: relative;
+}
+
+.tso-player-name {
+  font-family: var(--font-score);
+  font-size: clamp(1.8rem, 8vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.tso-darts-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.tso-dart-card {
+  flex: 1;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: 12px;
+  padding: 12px 6px;
+  text-align: center;
+  font-family: var(--font-score);
+  font-size: clamp(11px, 2.8vw, 18px);
+  font-weight: 800;
+  color: var(--text);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.tso-dart-card.scored {
+  border-color: var(--green);
+  background: rgba(0,217,126,0.1);
+  color: var(--green);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
+.tso-dart-card.bust-dart {
+  border-color: var(--red);
+  background: rgba(255,32,85,0.1);
+  color: var(--red);
+}
+
+.tso-dart-card.win-dart {
+  border-color: var(--yellow);
+  background: rgba(255,204,0,0.08);
+  color: var(--yellow);
+  box-shadow: 0 0 12px var(--yellow-glow);
+}
+
+.tso-dart-card.filled {
+  border-style: solid;
+  border-color: var(--border2);
+}
+
+.tso-dart-pts {
+  font-size: 10px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--green);
+  margin-top: 4px;
+}
+
+.tso-dart-card.bust-dart .tso-dart-pts { color: var(--red); }
+
+.tso-total-line {
+  font-family: var(--font-score);
+  font-size: clamp(1rem, 4.5vw, 1.8rem);
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.tso-total-line.bust { color: var(--red); text-shadow: 0 0 14px rgba(255,32,85,0.5); }
+.tso-total-line.epic { color: var(--yellow); text-shadow: 0 0 18px var(--yellow-glow); }
+
+.tso-meter-wrap {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.tso-meter-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--muted);
+}
+
+.tso-meter-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+}
+
+.tso-meter-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--meter-color, var(--green));
+  box-shadow: 0 0 8px var(--meter-glow, var(--green-glow));
+  width: 0%;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tso-meter-title {
+  font-family: var(--font-score);
+  font-size: clamp(1.4rem, 6vw, 2.6rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 1;
+}
+
+.tso-sub {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  z-index: 1;
+  position: relative;
+  margin-top: 6px;
 }
 
 /* ============================================================
