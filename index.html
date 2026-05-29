@@ -372,12 +372,17 @@
 <!-- ============================================================
      TURN SUMMARY OVERLAY — flashes after each turn before Remove Darts
      ============================================================ -->
+<!-- ============================================================
+     COMBINED TURN SUMMARY + REMOVE DARTS — single post-turn screen
+     ============================================================ -->
 <div id="turn-summary-overlay" class="turn-summary-overlay">
   <div class="tso-particles" id="tso-particles"></div>
   <div class="tso-content">
+    <!-- ── TURN ANALYSIS (large, top) ── -->
     <div class="tso-player-name" id="tso-player-name">—</div>
     <div class="tso-darts-row" id="tso-darts-row"></div>
     <div class="tso-total-line" id="tso-total-line"></div>
+    <div class="tso-analysis-row" id="tso-analysis-row"></div>
     <div class="tso-meter-wrap">
       <div class="tso-meter-label">TURN RATING</div>
       <div class="tso-meter-bar">
@@ -385,21 +390,31 @@
       </div>
       <div class="tso-meter-title" id="tso-meter-title">—</div>
     </div>
+    <!-- ── REMOVE DARTS (compact, bottom) ── -->
+    <div class="tso-divider"></div>
+    <div class="tso-remove-section">
+      <div class="tso-remove-label">Remove Darts</div>
+      <div class="tso-remove-ring-wrap">
+        <svg class="rdo-ring-svg" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle class="rdo-track"    cx="44" cy="44" r="36"/>
+          <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
+        </svg>
+        <span class="rdo-countdown" id="rdo-countdown">10</span>
+      </div>
+    </div>
   </div>
   <div class="tso-sub">Tap to skip</div>
 </div>
 
-<!-- ============================================================
-     REMOVE DARTS OVERLAY — post-turn BLE lockout
-     ============================================================ -->
+<!-- Remove-darts overlay kept as hidden fallback (used when no summary data) -->
 <div id="remove-darts-overlay" class="remove-darts-overlay">
   <div class="rdo-label">Remove Darts</div>
   <div class="rdo-ring-wrap">
     <svg class="rdo-ring-svg" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <circle class="rdo-track"    cx="44" cy="44" r="36"/>
-      <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
+      <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring-fallback"/>
     </svg>
-    <span class="rdo-countdown" id="rdo-countdown">10</span>
+    <span class="rdo-countdown" id="rdo-countdown-fallback">10</span>
   </div>
   <div class="rdo-sub">Tap to skip</div>
 </div>
@@ -465,12 +480,12 @@ const app = {
   _prevActiveCkt: -1,
 
   // Post-turn BLE lockout state
-  _boardLocked:        false,
-  _lastDartTime:       0,
-  _summaryTimer:       null,
-  _lockoutTimer:       null,
-  _lockoutInterval:    null,
-  _pendingAnnouncement: null,
+  _boardLocked:           false,
+  _lastDartTime:          0,
+  _lockoutTimer:          null,
+  _lockoutInterval:       null,
+  _pendingAnnouncement:   null,
+  _cricketPreTurnState:   null,
 };
 
 const LS_KEY          = 'dartslive-scorer-game';
@@ -509,24 +524,19 @@ function showTurnAnnouncement(playerName, playerIdx) {
 // Board lockout — post-turn "remove darts" window
 // ---------------------------------------------------------------------------
 const LOCKOUT_MS       = 10000;
-const SUMMARY_MS       = 3500;
 const DART_DEBOUNCE_MS = 400;
 
 function startBoardLockout(summaryData) {
   clearLockout();
   app._boardLocked = true;
   if (summaryData) {
-    _showTurnSummaryOverlay(summaryData);
-    app._summaryTimer = setTimeout(() => {
-      app._summaryTimer = null;
-      _hideTurnSummaryOverlay();
-      _showRemoveDartsOverlay(LOCKOUT_MS);
-      app._lockoutTimer = setTimeout(endBoardLockout, LOCKOUT_MS);
-    }, SUMMARY_MS);
+    // Show combined analysis + remove-darts screen for the full lockout window
+    _showTurnSummaryOverlay(summaryData, LOCKOUT_MS);
   } else {
+    // No summary data — fall back to standalone remove-darts overlay
     _showRemoveDartsOverlay(LOCKOUT_MS);
-    app._lockoutTimer = setTimeout(endBoardLockout, LOCKOUT_MS);
   }
+  app._lockoutTimer = setTimeout(endBoardLockout, LOCKOUT_MS);
 }
 
 function endBoardLockout() {
@@ -538,7 +548,6 @@ function endBoardLockout() {
 function clearLockout() {
   app._boardLocked = false;
   app._pendingAnnouncement = null;
-  if (app._summaryTimer)    { clearTimeout(app._summaryTimer);    app._summaryTimer    = null; }
   if (app._lockoutTimer)    { clearTimeout(app._lockoutTimer);    app._lockoutTimer    = null; }
   if (app._lockoutInterval) { clearInterval(app._lockoutInterval); app._lockoutInterval = null; }
   _hideTurnSummaryOverlay();
@@ -546,18 +555,17 @@ function clearLockout() {
 }
 
 function _showRemoveDartsOverlay(ms) {
+  // Fallback standalone overlay (used when no summary data)
   const el       = document.getElementById('remove-darts-overlay');
-  const ring     = document.getElementById('rdo-progress-ring');
-  const countEl  = document.getElementById('rdo-countdown');
+  const ring     = document.getElementById('rdo-progress-ring-fallback');
+  const countEl  = document.getElementById('rdo-countdown-fallback');
   if (!el) return;
 
   const secs = Math.round(ms / 1000);
   countEl.textContent = secs;
 
-  // Restart ring drain animation
   ring.style.animation = 'none';
   void ring.offsetWidth;
-  ring.style.animationDuration = (ms / 1000) + 's';
   ring.style.animation = `rdo-drain ${ms / 1000}s linear forwards`;
 
   el.classList.add('visible');
@@ -645,27 +653,113 @@ function playDartSound(label) {
   } catch (_) { /* audio not available */ }
 }
 
+// ---------------------------------------------------------------------------
+// Cricket TTV (Total Turn Value) engine — Cutthroat scoring matrix
+// Weights per mark: Dead=0, Vanilla=2, Offensive Prep=3, Defensive Close=4, Pointing=5
+// Max TTV = 9 marks × 5 = 45
+// ---------------------------------------------------------------------------
+const _CRICKET_NUMS = [15, 16, 17, 18, 19, 20, 25];
+
+function _classifyDart(d, simPlayerMarks, simOppMarks) {
+  const n    = d.number;
+  const mult = (d.segment && d.segment.multiplier) || 1;
+
+  if (!n || !_CRICKET_NUMS.includes(n)) {
+    return { type: 'DEAD', label: 'Miss', weight: 0 };
+  }
+
+  const pm          = simPlayerMarks[n] || 0;
+  const openOpps    = simOppMarks.filter(o => (o.marks[n] || 0) < 3);
+  const closedOpps  = simOppMarks.filter(o => (o.marks[n] || 0) >= 3);
+  const allOppClose = openOpps.length === 0;
+
+  // Completely dead number (player + all opponents closed)
+  if (pm >= 3 && allOppClose) {
+    return { type: 'DEAD', label: 'Dead', weight: 0 };
+  }
+
+  // Player already closed — pointing (or dead if no open opps)
+  if (pm >= 3) {
+    if (openOpps.length === 0) return { type: 'DEAD', label: 'Dead', weight: 0 };
+    return { type: 'POINTING', label: 'Damage', weight: mult * 5 };
+  }
+
+  // Player closing this number (or part-closing)
+  const marksToClose = 3 - pm;
+  const marksClosing = Math.min(mult, marksToClose); // marks spent closing
+  const scoringMarks = Math.max(0, mult - marksToClose); // overflow → pointing
+
+  let weight = 0;
+  let type, label;
+
+  if (allOppClose) {
+    // All opponents closed — defensive close (stop them dealing points)
+    weight = marksClosing * 4;
+    type = 'DEFENSIVE'; label = 'Def. Close';
+  } else if (closedOpps.length === 0) {
+    // All opponents still open — offensive prep (setting up future damage)
+    weight = marksClosing * 3;
+    type = 'PREP'; label = 'Off. Prep';
+  } else {
+    // Mixed — vanilla mark
+    weight = marksClosing * 2;
+    type = 'VANILLA'; label = 'Vanilla';
+  }
+
+  // Overflow: dart closes AND scores in same throw
+  if (scoringMarks > 0 && openOpps.length > 0) {
+    weight += scoringMarks * 5;
+    type = 'COMBO'; label = 'Close+Dmg';
+  }
+
+  return { type, label, weight };
+}
+
+function _calcCricketTTV(data) {
+  if (!data.preTurnState) return null;
+
+  const simPM   = { ...data.preTurnState.playerMarks };
+  const simOpps = data.preTurnState.opponentMarks.map(o => ({ marks: { ...o.marks } }));
+
+  let totalWeight = 0;
+  const dartResults = [];
+
+  for (const d of data.darts) {
+    const res = _classifyDart(d, simPM, simOpps);
+    dartResults.push(res);
+    totalWeight += res.weight;
+    // Advance simulated player marks for the next dart
+    const n = d.number;
+    if (n && _CRICKET_NUMS.includes(n)) {
+      simPM[n] = (simPM[n] || 0) + ((d.segment && d.segment.multiplier) || 1);
+    }
+  }
+
+  return { totalWeight, dartResults };
+}
+
 function _calcTurnQuality(data) {
   if (data.gameType === 'x01') {
-    if (data.isBust) return { level: 0, label: 'BUST', pct: 5, color: '#ff2055', glow: 'rgba(255,32,85,0.5)' };
+    if (data.isBust) return { level: 0, label: 'BUST',        pct: 5,   color: '#ff2055', glow: 'rgba(255,32,85,0.5)' };
     const t = data.turnTotal;
-    if (t >= 180) return { level: 5, label: 'TON-80 !!!',    pct: 100, color: '#FFCC00', glow: 'rgba(255,204,0,0.5)' };
-    if (t >= 140) return { level: 4, label: 'CRUSHING IT',   pct: 82,  color: '#FF8C00', glow: 'rgba(255,140,0,0.5)' };
-    if (t >= 100) return { level: 3, label: 'TON +',         pct: 62,  color: '#00D97E', glow: 'rgba(0,217,126,0.5)' };
-    if (t >= 60)  return { level: 2, label: 'SOLID TURN',    pct: 42,  color: '#3B7EE8', glow: 'rgba(59,126,232,0.5)' };
-    if (t >= 20)  return { level: 1, label: 'DECENT',        pct: 24,  color: '#5AB8F5', glow: 'rgba(90,184,245,0.4)' };
-    return              { level: 0, label: 'ROUGH ONE',      pct: 8,   color: '#6b7280', glow: 'rgba(107,114,128,0.3)' };
-  } else {
-    const triples = data.darts.filter(d => /^T\d+$/.test(d.segment.label)).length;
-    const pts = data.pointsTotal;
-    if (triples === 3) return { level: 5, label: 'ALL TRIPLES !!!', pct: 100, color: '#FFCC00', glow: 'rgba(255,204,0,0.5)' };
-    if (pts >= 80 || triples >= 2) return { level: 4, label: 'DOMINATING',  pct: 80, color: '#FF8C00', glow: 'rgba(255,140,0,0.5)' };
-    if (pts >= 30 || triples >= 1) return { level: 3, label: 'STRONG TURN', pct: 58, color: '#00D97E', glow: 'rgba(0,217,126,0.5)' };
-    if (pts > 0) return                   { level: 2, label: 'SCORING',     pct: 38, color: '#3B7EE8', glow: 'rgba(59,126,232,0.5)' };
-    const marks = data.darts.filter(d => d.number != null).length;
-    if (marks > 0) return                 { level: 1, label: 'MARKING UP',  pct: 20, color: '#5AB8F5', glow: 'rgba(90,184,245,0.4)' };
-    return                                { level: 0, label: 'MISS',        pct: 5,  color: '#6b7280', glow: 'rgba(107,114,128,0.3)' };
+    if (t >= 180) return   { level: 5, label: 'TON-80 !!!',  pct: 100, color: '#FFCC00', glow: 'rgba(255,204,0,0.5)' };
+    if (t >= 140) return   { level: 4, label: 'CRUSHING IT', pct: 82,  color: '#FF8C00', glow: 'rgba(255,140,0,0.5)' };
+    if (t >= 100) return   { level: 3, label: 'TON +',       pct: 62,  color: '#00D97E', glow: 'rgba(0,217,126,0.5)' };
+    if (t >= 60)  return   { level: 2, label: 'SOLID TURN',  pct: 42,  color: '#3B7EE8', glow: 'rgba(59,126,232,0.5)' };
+    if (t >= 20)  return   { level: 1, label: 'DECENT',      pct: 24,  color: '#5AB8F5', glow: 'rgba(90,184,245,0.4)' };
+    return                 { level: 0, label: 'ROUGH ONE',   pct: 8,   color: '#6b7280', glow: 'rgba(107,114,128,0.3)' };
   }
+
+  // Cricket / Cutthroat — TTV-based quality
+  const ttv = _calcCricketTTV(data);
+  const w   = ttv ? ttv.totalWeight : 0;
+
+  if (w === 0)  return { level: 0, label: 'NO SCORE',       pct: 5,   color: '#6b7280', glow: 'rgba(107,114,128,0.3)', ttv };
+  if (w <= 6)   return { level: 1, label: 'WEAK SETUP',     pct: 14,  color: '#5AB8F5', glow: 'rgba(90,184,245,0.4)',  ttv };
+  if (w <= 14)  return { level: 2, label: 'SOLID TURN',     pct: 34,  color: '#3B7EE8', glow: 'rgba(59,126,232,0.5)',  ttv };
+  if (w <= 24)  return { level: 3, label: 'HEAVY DAMAGE',   pct: 58,  color: '#00D97E', glow: 'rgba(0,217,126,0.5)',   ttv };
+  if (w <= 34)  return { level: 4, label: 'DOMINATING',     pct: 80,  color: '#FF8C00', glow: 'rgba(255,140,0,0.5)',   ttv };
+  return               { level: 5, label: 'CRUSHING TURN',  pct: 100, color: '#FFCC00', glow: 'rgba(255,204,0,0.5)',   ttv };
 }
 
 function _spawnTurnParticles(container, quality, pc) {
@@ -696,7 +790,7 @@ function _spawnTurnParticles(container, quality, pc) {
   }
 }
 
-function _showTurnSummaryOverlay(data) {
+function _showTurnSummaryOverlay(data, ms) {
   const el = document.getElementById('turn-summary-overlay');
   if (!el) return;
   const pc      = getPlayerColor(data.playerName, data.playerIdx);
@@ -708,23 +802,34 @@ function _showTurnSummaryOverlay(data) {
   nameEl.style.color = pc.color;
   nameEl.style.textShadow = '0 0 30px ' + pc.glow;
 
-  // Darts row
-  const dartsRow = document.getElementById('tso-darts-row');
+  // Darts row — with per-dart type tag for cricket
+  const dartsRow  = document.getElementById('tso-darts-row');
   dartsRow.innerHTML = '';
-  const dartList = data.darts.slice(0, 3);
+  const dartList  = data.darts.slice(0, 3);
+  const ttvResult = quality.ttv;
   while (dartList.length < 3) dartList.push(null);
-  dartList.forEach(d => {
+  dartList.forEach((d, idx) => {
     const card = document.createElement('div');
     card.className = 'tso-dart-card';
     if (!d) {
-      card.textContent = '—';
+      card.innerHTML = '<span class="tso-dart-empty">—</span>';
       dartsRow.appendChild(card);
       return;
     }
+    const { word, num } = parseDartLabel(d.segment.label);
     const labelLine = document.createElement('div');
-    labelLine.textContent = formatDartLabel(d.segment.label);
+    labelLine.className = 'tso-dart-label';
+    labelLine.innerHTML = `<span class="tso-dart-word">${word}</span>${num ? `<span class="tso-dart-num">${num}</span>` : ''}`;
     card.appendChild(labelLine);
     if (data.gameType === 'cricket') {
+      // Type tag from TTV analysis
+      if (ttvResult && ttvResult.dartResults[idx]) {
+        const dr  = ttvResult.dartResults[idx];
+        const tag = document.createElement('div');
+        tag.className = 'tso-dart-tag tso-dart-tag--' + dr.type.toLowerCase();
+        tag.textContent = dr.label;
+        card.appendChild(tag);
+      }
       if (d.pointsScored > 0) {
         card.classList.add('scored');
         const pts = document.createElement('div');
@@ -761,12 +866,23 @@ function _showTurnSummaryOverlay(data) {
       totalEl.textContent = (data.isCutthroat ? 'DEALT: +' : 'SCORED: +') + data.pointsTotal;
       totalEl.className = 'tso-total-line' + (data.pointsTotal >= 60 ? ' epic' : '');
     } else {
-      totalEl.textContent = 'MARKS ONLY';
+      const totalMarks = data.darts.filter(d => d && d.number != null).length;
+      totalEl.textContent = totalMarks > 0 ? 'MARKS ONLY' : 'NO MARKS';
       totalEl.className = 'tso-total-line';
     }
   }
 
-  // Meter
+  // Analysis row: show TTV score for cricket
+  const analysisRow = document.getElementById('tso-analysis-row');
+  analysisRow.innerHTML = '';
+  if (data.gameType === 'cricket' && ttvResult) {
+    const ttv = document.createElement('div');
+    ttv.className = 'tso-ttv-line';
+    ttv.textContent = 'TURN VALUE: ' + ttvResult.totalWeight + ' / 45';
+    analysisRow.appendChild(ttv);
+  }
+
+  // Quality meter
   const meterFill  = document.getElementById('tso-meter-fill');
   const meterTitle = document.getElementById('tso-meter-title');
   meterTitle.textContent = quality.label;
@@ -776,10 +892,34 @@ function _showTurnSummaryOverlay(data) {
   meterFill.style.setProperty('--meter-glow',  quality.glow);
   meterFill.style.width = '0%';
 
-  // Particles for high-quality turns
+  // Particles
   const particlesEl = document.getElementById('tso-particles');
   particlesEl.innerHTML = '';
   if (quality.level >= 4) _spawnTurnParticles(particlesEl, quality, pc);
+
+  // Embedded remove-darts countdown
+  const rdoMs = ms || LOCKOUT_MS;
+  const secs  = Math.round(rdoMs / 1000);
+  const countEl = document.getElementById('rdo-countdown');
+  const ring    = document.getElementById('rdo-progress-ring');
+  if (countEl) countEl.textContent = secs;
+  if (ring) {
+    ring.style.animation = 'none';
+    void ring.offsetWidth;
+    ring.style.animation = `rdo-drain ${rdoMs / 1000}s linear forwards`;
+  }
+  // Remove previous interval if any
+  if (app._lockoutInterval) { clearInterval(app._lockoutInterval); app._lockoutInterval = null; }
+  let remaining = secs;
+  app._lockoutInterval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      if (countEl) countEl.textContent = remaining;
+    } else {
+      clearInterval(app._lockoutInterval);
+      app._lockoutInterval = null;
+    }
+  }, 1000);
 
   el.classList.add('visible');
   setTimeout(() => { meterFill.style.width = quality.pct + '%'; }, 80);
@@ -1555,6 +1695,18 @@ function handleDart(segment, bypassGuards = false) {
 
   } else if (app.game instanceof GameCricket) {
     const prevPlayerIdx = app.game.state.currentPlayerIndex;
+
+    // Capture pre-turn state on the first dart of each turn (needed for TTV analysis)
+    if (app.game.state.currentTurn.dartCount === 0) {
+      const sp = app.game.state;
+      app._cricketPreTurnState = {
+        playerMarks:   { ...sp.players[prevPlayerIdx].marks },
+        opponentMarks: sp.players
+          .filter((_, i) => i !== prevPlayerIdx)
+          .map(p => ({ marks: { ...p.marks }, score: p.score })),
+      };
+    }
+
     const result = app.game.throwDart(segment);
     const s = app.game.state;
 
@@ -1569,7 +1721,9 @@ function handleDart(segment, bypassGuards = false) {
         gameType:     'cricket',
         isCutthroat:  app.game instanceof GameCutthroatCricket,
         pointsTotal:  lastEntry.darts.reduce((sum, d) => sum + (d.pointsScored || 0), 0),
+        preTurnState: app._cricketPreTurnState || null,
       });
+      app._cricketPreTurnState = null;
     }
 
     renderCricket();
@@ -1951,14 +2105,10 @@ window.addEventListener('DOMContentLoaded', () => {
     endBoardLockout();
   });
 
-  // Tap turn summary to skip to Remove Darts phase
+  // Tap combined turn summary / remove darts screen to dismiss early
   document.getElementById('turn-summary-overlay').addEventListener('click', () => {
     if (!app._boardLocked) return;
-    if (app._summaryTimer) { clearTimeout(app._summaryTimer); app._summaryTimer = null; }
-    _hideTurnSummaryOverlay();
-    _showRemoveDartsOverlay(LOCKOUT_MS);
-    if (app._lockoutTimer) clearTimeout(app._lockoutTimer);
-    app._lockoutTimer = setTimeout(endBoardLockout, LOCKOUT_MS);
+    endBoardLockout();
   });
 
   // Tap anywhere on the turn announcement to dismiss early
