@@ -1622,9 +1622,8 @@ function updateCricketSide() {
     chip.className = 'cricket-dart-chip';
     const dart = turn.darts[i];
     if (dart) {
-      const parsed = parseDartLabel(dart.segment.label);
-      multEl.textContent = parsed.word;
-      numEl.textContent  = parsed.num + (dart.pointsScored > 0 ? '  +' + dart.pointsScored : '');
+      multEl.textContent = formatDartLabel(dart.segment.label) + (dart.pointsScored > 0 ? '  +' + dart.pointsScored : '');
+      numEl.textContent  = '';
       if (dart.pointsScored > 0) {
         chip.classList.add('scored');
       } else {
