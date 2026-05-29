@@ -1205,7 +1205,7 @@ table.cricket-table {
   border-style: solid;
   border-color: var(--border2);
 }
-.cricket-dart-chip.filled .chip-multiplier  { color: var(--text); opacity: 0.7; }
+.cricket-dart-chip.filled .chip-multiplier  { color: var(--text); opacity: 0.7; font-size: clamp(14px, 2.8vw, 20px); }
 .cricket-dart-chip.filled .chip-number      { color: var(--text); }
 .cricket-dart-chip.filled .chip-dart-diamond { opacity: 0.75; }
 
@@ -1215,7 +1215,7 @@ table.cricket-table {
   background: rgba(0,217,126,0.08);
   box-shadow: 0 0 10px var(--green-glow);
 }
-.cricket-dart-chip.scored .chip-multiplier  { color: var(--green); opacity: 0.8; }
+.cricket-dart-chip.scored .chip-multiplier  { color: var(--green); opacity: 0.8; font-size: clamp(14px, 2.8vw, 20px); }
 .cricket-dart-chip.scored .chip-number      { color: var(--green); }
 .cricket-dart-chip.scored .chip-dart-diamond { opacity: 1; }
 
