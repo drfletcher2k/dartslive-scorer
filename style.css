@@ -1818,8 +1818,8 @@ table.cricket-table {
   inset: 0;
   z-index: 435;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: space-between;
   gap: 0;
   background: rgba(4,6,12,0.95);
   cursor: pointer;
@@ -1840,6 +1840,64 @@ table.cricket-table {
   z-index: 0;
 }
 
+/* ── Main row: turn content + next-up panel ── */
+.tso-main {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  z-index: 1;
+  position: relative;
+}
+
+/* ── Next Up right panel ── */
+.tso-next-up {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid rgba(255,255,255,0.07);
+  padding: 40px 24px;
+}
+
+.tso-next-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.tso-next-name {
+  font-family: var(--font-score);
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* ── Bottom bar: Remove Darts on one line ── */
+.tso-bottom-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  z-index: 1;
+  position: relative;
+  flex-shrink: 0;
+}
+
 @keyframes tso-particle-burst {
   0%   { transform: translate(var(--px), var(--py)) scale(0); opacity: 1; }
   60%  { opacity: 1; }
@@ -1858,10 +1916,11 @@ table.cricket-table {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  max-width: 500px;
-  padding: 20px 20px 12px;
+  justify-content: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+  padding: 40px 32px;
   z-index: 1;
   position: relative;
   overflow-y: auto;
@@ -1869,7 +1928,7 @@ table.cricket-table {
 
 .tso-player-name {
   font-family: var(--font-score);
-  font-size: clamp(1.8rem, 8vw, 3.6rem);
+  font-size: clamp(2.4rem, 6vw, 5rem);
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -1878,7 +1937,7 @@ table.cricket-table {
 
 .tso-darts-row {
   display: flex;
-  gap: 10px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -1886,11 +1945,11 @@ table.cricket-table {
   flex: 1;
   background: var(--surface2);
   border: 1.5px solid var(--border2);
-  border-radius: 12px;
-  padding: 12px 6px;
+  border-radius: 14px;
+  padding: 18px 10px;
   text-align: center;
   font-family: var(--font-score);
-  font-size: clamp(11px, 2.8vw, 18px);
+  font-size: clamp(13px, 2.8vw, 22px);
   font-weight: 800;
   color: var(--text);
   text-transform: uppercase;
@@ -1934,7 +1993,7 @@ table.cricket-table {
 
 .tso-total-line {
   font-family: var(--font-score);
-  font-size: clamp(1rem, 4.5vw, 1.8rem);
+  font-size: clamp(1.2rem, 3.5vw, 2.4rem);
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 2px;
@@ -1944,11 +2003,11 @@ table.cricket-table {
 .tso-total-line.epic { color: var(--yellow); text-shadow: 0 0 18px var(--yellow-glow); }
 
 .tso-meter-wrap {
-  width: 90%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .tso-meter-label {
@@ -1960,9 +2019,9 @@ table.cricket-table {
 
 .tso-meter-bar {
   width: 100%;
-  height: 10px;
+  height: 14px;
   background: rgba(255,255,255,0.07);
-  border-radius: 5px;
+  border-radius: 7px;
   overflow: hidden;
   border: 1px solid var(--border2);
 }
@@ -1978,7 +2037,7 @@ table.cricket-table {
 
 .tso-meter-title {
   font-family: var(--font-score);
-  font-size: clamp(1.4rem, 6vw, 2.6rem);
+  font-size: clamp(1.8rem, 5vw, 3.6rem);
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -1992,9 +2051,6 @@ table.cricket-table {
   letter-spacing: 3px;
   text-transform: uppercase;
   opacity: 0.5;
-  z-index: 1;
-  position: relative;
-  margin-top: 4px;
 }
 
 /* ── Two-line dart label inside card ── */
@@ -2005,13 +2061,13 @@ table.cricket-table {
   gap: 1px;
 }
 .tso-dart-word {
-  font-size: clamp(9px, 2.4vw, 14px);
+  font-size: clamp(10px, 1.8vw, 16px);
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 .tso-dart-num {
-  font-size: clamp(1.2rem, 5vw, 2rem);
+  font-size: clamp(1.6rem, 4vw, 3rem);
   font-weight: 900;
   line-height: 1;
 }
@@ -2059,18 +2115,10 @@ table.cricket-table {
   flex-shrink: 0;
 }
 
-/* ── Embedded Remove Darts section (compact) ── */
-.tso-remove-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
+/* ── Remove Darts label (inside bottom bar) ── */
 .tso-remove-label {
   font-family: var(--font-score);
-  font-size: clamp(1.2rem, 5vw, 2rem);
+  font-size: clamp(1rem, 2.5vw, 1.6rem);
   font-weight: 900;
   color: var(--active);
   letter-spacing: 3px;
@@ -2081,14 +2129,14 @@ table.cricket-table {
 
 .tso-remove-ring-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .tso-remove-ring-wrap .rdo-countdown {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
 }
 
 /* ============================================================
