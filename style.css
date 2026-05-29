@@ -579,7 +579,7 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
 
 .player-card .card-name {
   font-family: var(--font-ui);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -626,7 +626,7 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
 .player-card.active .card-name {
   color: var(--pc, var(--active));
   opacity: 1;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 2px;
   animation: name-blink 0.9s ease-in-out infinite;
@@ -704,7 +704,7 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   display: flex;
   gap: 8px;
   flex: 1;
-  max-height: 190px;
+  max-height: 240px;
 }
 
 .dart-box {
@@ -715,38 +715,53 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   background: var(--surface2);
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-  min-height: 80px;
+  min-height: 100px;
   position: relative;
   overflow: hidden;
 }
 
-.dart-box .dart-label {
+.dart-box .dart-multiplier {
   font-family: var(--font-score);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.5px;
+  font-size: clamp(13px, 2.6vw, 20px);
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 1.5px;
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.dart-box .dart-score {
+.dart-box .dart-number {
   font-family: var(--font-score);
-  font-size: 30px;
+  font-size: clamp(44px, 9vw, 80px);
   font-weight: 900;
   color: var(--accent);
-  line-height: 1;
+  line-height: 0.9;
+  letter-spacing: -2px;
 }
 
-.dart-box.empty .dart-label { color: var(--muted); }
-.dart-box.empty .dart-score { color: var(--muted); font-size: 22px; }
+.dart-box .dart-pts {
+  font-family: var(--font-score);
+  font-size: clamp(11px, 2vw, 15px);
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1;
+  letter-spacing: 0.5px;
+}
+
+.dart-box.empty .dart-multiplier { color: var(--muted); opacity: 0.5; }
+.dart-box.empty .dart-number     { display: none; }
+.dart-box.empty .dart-pts        { display: none; }
 
 .dart-box.filled {
   border-style: solid;
   border-color: var(--border2);
 }
+.dart-box.filled .dart-multiplier { color: var(--text); opacity: 0.7; }
+.dart-box.filled .dart-number     { color: var(--text); }
+.dart-box.filled .dart-pts        { color: var(--muted); }
 
 /* Spring bounce on new dart */
 .dart-box.dart-landed {
@@ -766,8 +781,9 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   border-color: var(--red);
   background: rgba(255,32,85,0.1);
 }
-.dart-box.bust-dart .dart-label,
-.dart-box.bust-dart .dart-score { color: var(--red); }
+.dart-box.bust-dart .dart-multiplier { color: var(--red); }
+.dart-box.bust-dart .dart-number     { color: var(--red); }
+.dart-box.bust-dart .dart-pts        { color: var(--red); }
 
 /* Win */
 .dart-box.win-dart {
@@ -776,8 +792,9 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
   background: rgba(255,204,0,0.08);
   box-shadow: 0 0 14px var(--yellow-glow);
 }
-.dart-box.win-dart .dart-label,
-.dart-box.win-dart .dart-score { color: var(--yellow); }
+.dart-box.win-dart .dart-multiplier { color: var(--yellow); }
+.dart-box.win-dart .dart-number     { color: var(--yellow); }
+.dart-box.win-dart .dart-pts        { color: var(--yellow); }
 
 /* Skipped */
 .dart-box.skipped-dart {
@@ -789,14 +806,14 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
 /* ---- Turn Total ---- */
 .turn-total-line {
   font-family: var(--font-ui);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   text-align: center;
   letter-spacing: 0.5px;
 }
 .turn-total-line span {
   font-family: var(--font-score);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.5px;
@@ -811,10 +828,10 @@ body.epic-flash { animation: epic-flash 0.85s ease-out; }
 }
 .turn-controls button {
   flex: 1;
-  min-height: 40px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 6px;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 6px 8px;
   border-radius: 8px;
 }
 
@@ -917,7 +934,7 @@ table.cricket-table {
 .cricket-table thead th {
   background: var(--surface);
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--muted);
@@ -928,7 +945,7 @@ table.cricket-table {
   background: rgba(255,140,0,0.1);
 }
 .cricket-table thead th.ckt-active-player {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   animation: name-blink 0.9s ease-in-out infinite;
 }
@@ -1007,7 +1024,7 @@ table.cricket-table {
 
 #ckt-turn-label {
   font-family: var(--font-score);
-  font-size: 22px;
+  font-size: clamp(22px, 4vw, 32px);
   font-weight: 800;
   color: var(--pc, var(--active));
   letter-spacing: 1px;
@@ -1073,7 +1090,7 @@ table.cricket-table {
 }
 
 .ckt-last-sublabel {
-  font-size: 8px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 2px;
   color: var(--muted);
@@ -1081,7 +1098,7 @@ table.cricket-table {
 
 .ckt-last-result {
   font-family: var(--font-score);
-  font-size: clamp(16px, 4vw, 26px);
+  font-size: clamp(20px, 4.5vw, 34px);
   font-weight: 900;
   color: var(--active);
   letter-spacing: 1px;
@@ -1095,7 +1112,7 @@ table.cricket-table {
 
 .ckt-last-pts {
   font-family: var(--font-score);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--green);
   line-height: 1;
@@ -1159,37 +1176,37 @@ table.cricket-table {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   overflow: hidden;
   min-width: 0;
+  justify-content: center;
 }
 
-.cricket-dart-chip .chip-text {
+.cricket-dart-chip .chip-multiplier {
   font-family: var(--font-score);
-  font-size: clamp(14px, 3.2vw, 22px);
-  font-weight: 900;
+  font-size: clamp(11px, 2.4vw, 17px);
+  font-weight: 800;
   color: var(--muted);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.cricket-dart-chip .chip-text small {
-  font-size: 11px;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  margin-left: 6px;
-  color: var(--green);
+.cricket-dart-chip .chip-number {
+  font-family: var(--font-score);
+  font-size: clamp(28px, 5.5vw, 48px);
+  font-weight: 900;
+  color: var(--muted);
+  letter-spacing: -1px;
+  line-height: 1;
 }
 
 .cricket-dart-chip.filled {
   border-style: solid;
   border-color: var(--border2);
 }
-.cricket-dart-chip.filled .chip-text    { color: var(--text); }
+.cricket-dart-chip.filled .chip-multiplier  { color: var(--text); opacity: 0.7; }
+.cricket-dart-chip.filled .chip-number      { color: var(--text); }
 .cricket-dart-chip.filled .chip-dart-diamond { opacity: 0.75; }
 
 .cricket-dart-chip.scored {
@@ -1198,7 +1215,8 @@ table.cricket-table {
   background: rgba(0,217,126,0.08);
   box-shadow: 0 0 10px var(--green-glow);
 }
-.cricket-dart-chip.scored .chip-text         { color: var(--green); }
+.cricket-dart-chip.scored .chip-multiplier  { color: var(--green); opacity: 0.8; }
+.cricket-dart-chip.scored .chip-number      { color: var(--green); }
 .cricket-dart-chip.scored .chip-dart-diamond { opacity: 1; }
 
 .cricket-dart-chip.next-slot {
@@ -1229,10 +1247,10 @@ table.cricket-table {
 .cricket-controls .ctrl-row { display: flex; gap: 6px; }
 .cricket-controls button {
   flex: 1;
-  min-height: 40px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 6px;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 6px 8px;
 }
 
 /* ============================================================
@@ -1545,7 +1563,7 @@ table.cricket-table {
 @media (max-width: 600px) {
   .turn-area  { flex-direction: column; }
   .turn-left  { width: unset; }
-  .dart-boxes { max-height: 120px; }
+  .dart-boxes { max-height: 160px; }
 
   .cricket-layout { flex-direction: column; }
   .cricket-grid   { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border); }
@@ -1564,9 +1582,9 @@ table.cricket-table {
 }
 
 @media (min-width: 768px) {
-  .dart-box .dart-score { font-size: 36px; }
   .dart-boxes { max-height: 230px; }
-  .dart-box .dart-label { font-size: 16px; }
+  .dart-box .dart-number { font-size: clamp(52px, 10vw, 96px); }
+  .dart-box .dart-multiplier { font-size: clamp(15px, 2.8vw, 22px); }
 }
 
 @media (min-width: 1024px) {
@@ -1581,7 +1599,7 @@ table.cricket-table {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 7px 16px;
+  padding: 10px 16px;
   background: var(--pcdim, rgba(255,140,0,0.055));
   border-bottom: 1px solid var(--pcg, rgba(255,140,0,0.2));
   transition: background 0.3s, border-color 0.3s;
@@ -1589,7 +1607,7 @@ table.cricket-table {
 
 .ntb-label {
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 3px;
   color: var(--muted);
   text-transform: uppercase;

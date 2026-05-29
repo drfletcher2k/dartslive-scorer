@@ -125,16 +125,19 @@
       <div class="turn-left">
         <div class="dart-boxes" id="dart-boxes-01">
           <div class="dart-box empty" id="dart-box-0">
-            <span class="dart-label">—</span>
-            <span class="dart-score">·</span>
+            <span class="dart-multiplier">—</span>
+            <span class="dart-number"></span>
+            <span class="dart-pts"></span>
           </div>
           <div class="dart-box empty" id="dart-box-1">
-            <span class="dart-label">—</span>
-            <span class="dart-score">·</span>
+            <span class="dart-multiplier">—</span>
+            <span class="dart-number"></span>
+            <span class="dart-pts"></span>
           </div>
           <div class="dart-box empty" id="dart-box-2">
-            <span class="dart-label">—</span>
-            <span class="dart-score">·</span>
+            <span class="dart-multiplier">—</span>
+            <span class="dart-number"></span>
+            <span class="dart-pts"></span>
           </div>
         </div>
         <div class="turn-total-line" id="turn-total-01">Turn total: <span>0</span></div>
@@ -244,7 +247,8 @@
             </div>
           </div>
           <div class="chip-throw-text">
-            <span class="chip-text">—</span>
+            <span class="chip-multiplier">—</span>
+            <span class="chip-number"></span>
           </div>
         </div>
         <div class="cricket-dart-chip" id="ckt-chip-1" data-filled="0">
@@ -268,7 +272,8 @@
             </div>
           </div>
           <div class="chip-throw-text">
-            <span class="chip-text">—</span>
+            <span class="chip-multiplier">—</span>
+            <span class="chip-number"></span>
           </div>
         </div>
         <div class="cricket-dart-chip" id="ckt-chip-2" data-filled="0">
@@ -292,7 +297,8 @@
             </div>
           </div>
           <div class="chip-throw-text">
-            <span class="chip-text">—</span>
+            <span class="chip-multiplier">—</span>
+            <span class="chip-number"></span>
           </div>
         </div>
       </div>
@@ -583,6 +589,60 @@ function formatDartLabel(label) {
   const m = label.match(/^([TDS])(\d+)$/);
   if (!m) return label;
   return { T: 'TRIPLE', D: 'DOUBLE', S: 'SINGLE' }[m[1]] + ' ' + m[2];
+}
+
+// Splits a dart label into { word, num } for two-line display
+// word = 'SINGLE'/'DOUBLE'/'TRIPLE'/'BULL'/'DOUBLE BULL', num = '20' etc.
+function parseDartLabel(label) {
+  if (!label || label === '—') return { word: '—', num: '' };
+  if (label === 'DBULL') return { word: 'DOUBLE', num: 'BULL' };
+  if (label === 'BULL')  return { word: 'BULL',   num: '' };
+  const m = label.match(/^([TDS])(\d+)$/);
+  if (!m) return { word: label, num: '' };
+  return { word: { T: 'TRIPLE', D: 'DOUBLE', S: 'SINGLE' }[m[1]], num: m[2] };
+}
+
+// ---------------------------------------------------------------------------
+// Audio feedback — Web Audio API synthesized tones
+// ---------------------------------------------------------------------------
+let _audioCtx = null;
+function _getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function playDartSound(label) {
+  try {
+    const ctx = _getAudioCtx();
+    const now = ctx.currentTime;
+
+    let freqs, type, duration, gainPeak;
+    if (label === 'DBULL') {
+      freqs = [330, 660]; type = 'sine'; duration = 0.32; gainPeak = 0.28;
+    } else if (label === 'BULL') {
+      freqs = [330]; type = 'sine'; duration = 0.28; gainPeak = 0.3;
+    } else {
+      const m = label && label.match(/^([TDS])(\d+)$/);
+      const mult = m ? m[1] : 'S';
+      if (mult === 'T') { freqs = [660, 990]; type = 'triangle'; duration = 0.22; gainPeak = 0.28; }
+      else if (mult === 'D') { freqs = [440, 550]; type = 'triangle'; duration = 0.2; gainPeak = 0.26; }
+      else { freqs = [260]; type = 'triangle'; duration = 0.18; gainPeak = 0.24; }
+    }
+
+    freqs.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(gainPeak / (i + 1), now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.start(now);
+      osc.stop(now + duration + 0.01);
+    });
+  } catch (_) { /* audio not available */ }
 }
 
 function _calcTurnQuality(data) {
@@ -1127,50 +1187,53 @@ function updateDartBoxes() {
   const bleConnected = app.ble && app.ble.connected;
 
   for (let i = 0; i < 3; i++) {
-    const box = document.getElementById('dart-box-' + i);
-    const dart = turn.darts[i];
-    const labelEl = box.querySelector('.dart-label');
-    const scoreEl = box.querySelector('.dart-score');
+    const box     = document.getElementById('dart-box-' + i);
+    const dart    = turn.darts[i];
+    const multEl  = box.querySelector('.dart-multiplier');
+    const numEl   = box.querySelector('.dart-number');
+    const ptsEl   = box.querySelector('.dart-pts');
 
-    // Track previous fill state for landing animation
-    const wasFilled = box.dataset.filled === '1';
-
-    // Remove all modifier classes (keep dart-landed if mid-animation)
+    const wasFilled  = box.dataset.filled === '1';
     const wasLanding = box.classList.contains('dart-landed');
     box.className = 'dart-box';
     if (wasLanding) box.classList.add('dart-landed');
 
     if (dart) {
-      const seg = dart.segment;
-      labelEl.textContent = formatDartLabel(seg.label);
-      scoreEl.textContent = seg.score;
+      const seg    = dart.segment;
+      const parsed = parseDartLabel(seg.label);
+      multEl.textContent = parsed.word;
+      numEl.textContent  = parsed.num;
+      // Only show score when it differs from the displayed number (doubles, triples, bull)
+      const scoreDisplay = (seg.score > 0 && String(seg.score) !== parsed.num) ? String(seg.score) : '';
 
       if (dart.bust) {
         box.classList.add('bust-dart');
+        ptsEl.textContent = scoreDisplay;
       } else if (dart.win) {
         box.classList.add('win-dart');
+        ptsEl.textContent = scoreDisplay;
       } else if (!dart.counted) {
         box.classList.add('skipped-dart');
-        labelEl.textContent = formatDartLabel(seg.label);
-        scoreEl.textContent = '0';
+        ptsEl.textContent = '0';
       } else {
         box.classList.add('filled');
+        ptsEl.textContent = scoreDisplay;
       }
     } else {
-      labelEl.textContent = '—';
-      scoreEl.textContent = '·';
+      multEl.textContent = '—';
+      numEl.textContent  = '';
+      ptsEl.textContent  = '';
       box.classList.add('empty');
-      // Pulse the next empty slot when BLE connected
       if (bleConnected && i === turn.dartCount && s.phase !== 'won') {
         box.classList.add('next-slot');
       }
     }
 
-    // Trigger landing pop when a new dart appears
     const isNowFilled = !!dart;
     if (isNowFilled && !wasFilled) {
+      playDartSound(dart.segment.label);
       box.classList.remove('dart-landed');
-      void box.offsetWidth; // force reflow
+      void box.offsetWidth;
       box.classList.add('dart-landed');
       setTimeout(() => box.classList.remove('dart-landed'), 480);
     }
@@ -1349,86 +1412,73 @@ function updateCricketSide() {
     }
   }
 
-  // Featured last-throw display
+  // Featured last-throw display — only visible when the current player has thrown at least one dart
   const lastResultEl = document.getElementById('ckt-last-result');
   const lastPtsEl    = document.getElementById('ckt-last-pts');
   const lastZone     = document.getElementById('ckt-last-throw-zone');
-  if (lastResultEl) {
+  if (lastZone) lastZone.style.display = turn.darts.length > 0 ? '' : 'none';
+  if (lastResultEl && turn.darts.length > 0) {
     const apc = (s.phase !== 'won')
       ? getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex)
       : (s.winner !== null ? getPlayerColor(s.players[s.winner].name, s.winner) : PLAYER_COLORS[0]);
 
     const prevLastResult = lastResultEl.dataset.lastLabel || '';
+    const lastDart = turn.darts[turn.darts.length - 1];
+    const label = lastDart.segment.label;
 
-    let lastDart = null;
-    let fromCurrentTurn = false;
-    if (turn.darts.length > 0) {
-      lastDart = turn.darts[turn.darts.length - 1];
-      fromCurrentTurn = true;
-    } else if (s.history.length > 0) {
-      const prev = s.history[0].darts;
-      if (prev.length > 0) lastDart = prev[prev.length - 1];
-    }
-
-    if (lastDart) {
-      const label = lastDart.segment.label;
-      lastResultEl.textContent = formatDartLabel(label);
-      lastResultEl.style.opacity = fromCurrentTurn ? '1' : '0.4';
-      if (lastDart.pointsScored > 0) {
-        lastResultEl.style.color = 'var(--green)';
-        lastResultEl.style.textShadow = '0 0 20px var(--green-glow)';
-        lastPtsEl.textContent = (app.game instanceof GameCutthroatCricket)
-          ? 'DEALT +' + lastDart.pointsScored
-          : '+' + lastDart.pointsScored + ' PTS';
-      } else {
-        lastResultEl.style.color = apc.color;
-        lastResultEl.style.textShadow = '0 0 20px ' + apc.glow;
-        lastPtsEl.textContent = '';
-      }
-      // Animate zone when a new dart arrives
-      if (fromCurrentTurn && label !== prevLastResult && lastZone) {
-        lastZone.classList.remove('dart-zone-landed');
-        void lastZone.offsetWidth;
-        lastZone.classList.add('dart-zone-landed');
-        setTimeout(() => lastZone.classList.remove('dart-zone-landed'), 480);
-      }
-      lastResultEl.dataset.lastLabel = fromCurrentTurn ? label : '';
+    lastResultEl.textContent = formatDartLabel(label);
+    lastResultEl.style.opacity = '1';
+    if (lastDart.pointsScored > 0) {
+      lastResultEl.style.color = 'var(--green)';
+      lastResultEl.style.textShadow = '0 0 20px var(--green-glow)';
+      lastPtsEl.textContent = (app.game instanceof GameCutthroatCricket)
+        ? 'DEALT +' + lastDart.pointsScored
+        : '+' + lastDart.pointsScored + ' PTS';
     } else {
-      lastResultEl.textContent = '—';
-      lastResultEl.style.color = 'var(--muted)';
-      lastResultEl.style.textShadow = 'none';
-      lastResultEl.style.opacity = '1';
+      lastResultEl.style.color = apc.color;
+      lastResultEl.style.textShadow = '0 0 20px ' + apc.glow;
       lastPtsEl.textContent = '';
-      lastResultEl.dataset.lastLabel = '';
     }
+    if (label !== prevLastResult && lastZone) {
+      lastZone.classList.remove('dart-zone-landed');
+      void lastZone.offsetWidth;
+      lastZone.classList.add('dart-zone-landed');
+      setTimeout(() => lastZone.classList.remove('dart-zone-landed'), 480);
+    }
+    lastResultEl.dataset.lastLabel = label;
+  } else if (lastResultEl) {
+    lastResultEl.dataset.lastLabel = '';
   }
 
   // Dart chips (vertical column)
   for (let i = 0; i < 3; i++) {
-    const chip = document.getElementById('ckt-chip-' + i);
+    const chip   = document.getElementById('ckt-chip-' + i);
     const wasFilled = chip.dataset.filled === '1';
-    const textEl = chip.querySelector('.chip-text');
+    const multEl = chip.querySelector('.chip-multiplier');
+    const numEl  = chip.querySelector('.chip-number');
 
     chip.className = 'cricket-dart-chip';
     const dart = turn.darts[i];
     if (dart) {
+      const parsed = parseDartLabel(dart.segment.label);
+      multEl.textContent = parsed.word;
+      numEl.textContent  = parsed.num + (dart.pointsScored > 0 ? '  +' + dart.pointsScored : '');
       if (dart.pointsScored > 0) {
         chip.classList.add('scored');
-        textEl.innerHTML = escHtml(formatDartLabel(dart.segment.label)) + ' <small>+' + dart.pointsScored + '</small>';
       } else {
         chip.classList.add('filled');
-        textEl.textContent = formatDartLabel(dart.segment.label);
       }
     } else {
-      textEl.textContent = '—';
+      multEl.textContent = '—';
+      numEl.textContent  = '';
       if (bleConnected && i === turn.dartCount && s.phase !== 'won') {
         chip.classList.add('next-slot');
       }
     }
 
-    // Landing pop animation
     const isNowFilled = !!dart;
     if (isNowFilled && !wasFilled) {
+      playDartSound(dart.segment.label);
       chip.classList.add('dart-landed');
       setTimeout(() => chip.classList.remove('dart-landed'), 480);
     }
