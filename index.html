@@ -377,33 +377,39 @@
      ============================================================ -->
 <div id="turn-summary-overlay" class="turn-summary-overlay">
   <div class="tso-particles" id="tso-particles"></div>
-  <div class="tso-content">
-    <!-- ── TURN ANALYSIS (large, top) ── -->
-    <div class="tso-player-name" id="tso-player-name">—</div>
-    <div class="tso-darts-row" id="tso-darts-row"></div>
-    <div class="tso-total-line" id="tso-total-line"></div>
-    <div class="tso-analysis-row" id="tso-analysis-row"></div>
-    <div class="tso-meter-wrap">
-      <div class="tso-meter-label">TURN RATING</div>
-      <div class="tso-meter-bar">
-        <div class="tso-meter-fill" id="tso-meter-fill"></div>
+  <!-- ── Main area: turn analysis (left/center) + next up (right) ── -->
+  <div class="tso-main">
+    <div class="tso-content">
+      <div class="tso-player-name" id="tso-player-name">—</div>
+      <div class="tso-darts-row" id="tso-darts-row"></div>
+      <div class="tso-total-line" id="tso-total-line"></div>
+      <div class="tso-analysis-row" id="tso-analysis-row"></div>
+      <div class="tso-meter-wrap">
+        <div class="tso-meter-label">TURN RATING</div>
+        <div class="tso-meter-bar">
+          <div class="tso-meter-fill" id="tso-meter-fill"></div>
+        </div>
+        <div class="tso-meter-title" id="tso-meter-title">—</div>
       </div>
-      <div class="tso-meter-title" id="tso-meter-title">—</div>
     </div>
-    <!-- ── REMOVE DARTS (compact, bottom) ── -->
-    <div class="tso-divider"></div>
-    <div class="tso-remove-section">
-      <div class="tso-remove-label">Remove Darts</div>
-      <div class="tso-remove-ring-wrap">
-        <svg class="rdo-ring-svg" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <circle class="rdo-track"    cx="44" cy="44" r="36"/>
-          <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
-        </svg>
-        <span class="rdo-countdown" id="rdo-countdown">10</span>
-      </div>
+    <!-- ── Right panel: Next Up ── -->
+    <div class="tso-next-up" id="tso-next-up">
+      <div class="tso-next-label">NEXT UP</div>
+      <div class="tso-next-name" id="tso-next-name">—</div>
     </div>
   </div>
-  <div class="tso-sub">Tap to skip</div>
+  <!-- ── Bottom bar: Remove Darts on one line ── -->
+  <div class="tso-bottom-bar">
+    <div class="tso-remove-label">REMOVE DARTS</div>
+    <div class="tso-remove-ring-wrap">
+      <svg class="rdo-ring-svg" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle class="rdo-track"    cx="44" cy="44" r="36"/>
+        <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
+      </svg>
+      <span class="rdo-countdown" id="rdo-countdown">10</span>
+    </div>
+    <div class="tso-sub">TAP TO SKIP</div>
+  </div>
 </div>
 
 <!-- Remove-darts overlay kept as hidden fallback (used when no summary data) -->
@@ -891,6 +897,22 @@ function _showTurnSummaryOverlay(data, ms) {
   meterFill.style.setProperty('--meter-color', quality.color);
   meterFill.style.setProperty('--meter-glow',  quality.glow);
   meterFill.style.width = '0%';
+
+  // Next Up panel
+  const nextUpEl   = document.getElementById('tso-next-up');
+  const nextNameEl = document.getElementById('tso-next-name');
+  const players    = app.game && app.game.state && app.game.state.players;
+  if (nextUpEl && nextNameEl && players && players.length > 1) {
+    const nextIdx  = (data.playerIdx + 1) % players.length;
+    const nextName = players[nextIdx].name;
+    const npc      = getPlayerColor(nextName, nextIdx);
+    nextNameEl.textContent  = nextName.toUpperCase();
+    nextNameEl.style.color  = npc.color;
+    nextNameEl.style.textShadow = '0 0 40px ' + npc.glow;
+    nextUpEl.style.display  = 'flex';
+  } else if (nextUpEl) {
+    nextUpEl.style.display  = 'none';
+  }
 
   // Particles
   const particlesEl = document.getElementById('tso-particles');
