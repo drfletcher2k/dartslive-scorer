@@ -189,40 +189,6 @@
       <!-- Turn label -->
       <div class="cricket-side-label" id="ckt-turn-label">Turn</div>
 
-      <!-- Featured last throw -->
-      <div class="ckt-last-throw-zone" id="ckt-last-throw-zone">
-        <div class="ckt-dart-diamond">
-          <div class="ckt-dart-svg-wrap">
-            <svg viewBox="0 0 190 58" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <!-- flights -->
-              <polygon points="30,29 0,5 17,29" fill="#cc1f35"/>
-              <polygon points="30,29 0,53 17,29" fill="#cc1f35"/>
-              <polygon points="30,29 10,13 22,29" fill="#f03050" opacity="0.75"/>
-              <polygon points="30,29 10,45 22,29" fill="#f03050" opacity="0.75"/>
-              <!-- shaft -->
-              <rect x="30" y="26.5" width="40" height="5" rx="2.5" fill="#3d5170"/>
-              <!-- barrel -->
-              <rect x="70" y="21" width="66" height="16" rx="8" fill="#b87c10"/>
-              <rect x="70" y="21" width="66" height="6" rx="4" fill="#e8a830" opacity="0.55"/>
-              <!-- grip rings -->
-              <rect x="83" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
-              <rect x="93" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
-              <rect x="103" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
-              <rect x="113" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/>
-              <!-- tip shoulder -->
-              <rect x="136" y="23" width="12" height="12" rx="2" fill="#6e84a8"/>
-              <!-- needle -->
-              <polygon points="148,29 190,29 148,26 148,32" fill="#c0cee0"/>
-            </svg>
-          </div>
-        </div>
-        <div class="ckt-last-throw-text">
-          <div class="ckt-last-sublabel">LAST DART</div>
-          <div class="ckt-last-result" id="ckt-last-result">—</div>
-          <div class="ckt-last-pts" id="ckt-last-pts"></div>
-        </div>
-      </div>
-
       <!-- Current turn darts — vertical column -->
       <div class="cricket-side-label">THIS TURN</div>
       <div class="cricket-turn-col" id="ckt-turn-darts">
@@ -303,6 +269,12 @@
         </div>
       </div>
 
+      <!-- Round indicator -->
+      <div class="cricket-round-display">
+        <div class="crd-label">ROUND</div>
+        <div class="crd-number" id="ckt-round-number">1</div>
+      </div>
+
       <div class="cricket-controls">
         <div class="ctrl-row">
           <button class="btn-undo"   id="btn-undo-ckt">Undo</button>
@@ -376,29 +348,20 @@
      COMBINED TURN SUMMARY + REMOVE DARTS — single post-turn screen
      ============================================================ -->
 <div id="turn-summary-overlay" class="turn-summary-overlay">
-  <div class="tso-particles" id="tso-particles"></div>
-  <!-- ── Main area: turn analysis (left/center) + next up (right) ── -->
+  <!-- ── Main area: turn summary (left) + next up (right) ── -->
   <div class="tso-main">
     <div class="tso-content">
       <div class="tso-player-name" id="tso-player-name">—</div>
       <div class="tso-darts-row" id="tso-darts-row"></div>
       <div class="tso-total-line" id="tso-total-line"></div>
-      <div class="tso-analysis-row" id="tso-analysis-row"></div>
-      <div class="tso-meter-wrap">
-        <div class="tso-meter-label">TURN RATING</div>
-        <div class="tso-meter-bar">
-          <div class="tso-meter-fill" id="tso-meter-fill"></div>
-        </div>
-        <div class="tso-meter-title" id="tso-meter-title">—</div>
-      </div>
     </div>
-    <!-- ── Right panel: Next Up ── -->
+    <!-- ── Right panel: Up Next ── -->
     <div class="tso-next-up" id="tso-next-up">
-      <div class="tso-next-label">NEXT UP</div>
+      <div class="tso-next-label">UP NEXT</div>
       <div class="tso-next-name" id="tso-next-name">—</div>
     </div>
   </div>
-  <!-- ── Bottom bar: Remove Darts on one line ── -->
+  <!-- ── Bottom bar: Remove Darts countdown ── -->
   <div class="tso-bottom-bar">
     <div class="tso-remove-label">REMOVE DARTS</div>
     <div class="tso-remove-ring-wrap">
@@ -406,7 +369,7 @@
         <circle class="rdo-track"    cx="44" cy="44" r="36"/>
         <circle class="rdo-progress" cx="44" cy="44" r="36" id="rdo-progress-ring"/>
       </svg>
-      <span class="rdo-countdown" id="rdo-countdown">10</span>
+      <span class="rdo-countdown" id="rdo-countdown">8</span>
     </div>
     <div class="tso-sub">TAP TO SKIP</div>
   </div>
@@ -428,15 +391,6 @@
 <!-- ============================================================
      TOAST CONTAINER
      ============================================================ -->
-<!-- ============================================================
-     TURN ANNOUNCEMENT OVERLAY
-     ============================================================ -->
-<div id="turn-announcement" class="turn-announcement">
-  <div class="turn-ann-label">NOW THROWING</div>
-  <div class="turn-ann-name" id="turn-ann-name">—</div>
-  <div class="turn-ann-sub">Tap to dismiss</div>
-</div>
-
 <div class="toast-container" id="toast-container"></div>
 
 <!-- ============================================================
@@ -490,46 +444,15 @@ const app = {
   _lastDartTime:          0,
   _lockoutTimer:          null,
   _lockoutInterval:       null,
-  _pendingAnnouncement:   null,
-  _cricketPreTurnState:   null,
 };
 
 const LS_KEY          = 'dartslive-scorer-game';
 const LS_HISTORY_KEY  = 'dartslive-cricket-history';
 
 // ---------------------------------------------------------------------------
-// Turn Announcement Overlay
-// ---------------------------------------------------------------------------
-let _turnAnnTimeout = null;
-
-function showTurnAnnouncement(playerName, playerIdx) {
-  // Don't overlay the win screen
-  if (document.getElementById('win-overlay').classList.contains('visible')) return;
-  // Queue if board is locked; fires when lockout ends
-  if (app._boardLocked) {
-    app._pendingAnnouncement = { playerName, playerIdx };
-    return;
-  }
-  const el = document.getElementById('turn-announcement');
-  if (!el) return;
-  document.getElementById('turn-ann-name').textContent = playerName;
-  const pc = getPlayerColor(playerName, playerIdx !== undefined ? playerIdx : 0);
-  el.style.setProperty('--ann-color', pc.color);
-  el.style.setProperty('--ann-glow', pc.glow);
-  el.classList.remove('visible');
-  void el.offsetWidth; // force reflow to restart animation
-  el.classList.add('visible');
-  if (_turnAnnTimeout) clearTimeout(_turnAnnTimeout);
-  _turnAnnTimeout = setTimeout(() => {
-    el.classList.remove('visible');
-    _turnAnnTimeout = null;
-  }, 2400);
-}
-
-// ---------------------------------------------------------------------------
 // Board lockout — post-turn "remove darts" window
 // ---------------------------------------------------------------------------
-const LOCKOUT_MS       = 10000;
+const LOCKOUT_MS       = 8000;
 const DART_DEBOUNCE_MS = 400;
 
 function startBoardLockout(summaryData) {
@@ -546,14 +469,11 @@ function startBoardLockout(summaryData) {
 }
 
 function endBoardLockout() {
-  const pending = app._pendingAnnouncement;
   clearLockout();
-  if (pending) showTurnAnnouncement(pending.playerName, pending.playerIdx);
 }
 
 function clearLockout() {
   app._boardLocked = false;
-  app._pendingAnnouncement = null;
   if (app._lockoutTimer)    { clearTimeout(app._lockoutTimer);    app._lockoutTimer    = null; }
   if (app._lockoutInterval) { clearInterval(app._lockoutInterval); app._lockoutInterval = null; }
   _hideTurnSummaryOverlay();
@@ -799,8 +719,7 @@ function _spawnTurnParticles(container, quality, pc) {
 function _showTurnSummaryOverlay(data, ms) {
   const el = document.getElementById('turn-summary-overlay');
   if (!el) return;
-  const pc      = getPlayerColor(data.playerName, data.playerIdx);
-  const quality = _calcTurnQuality(data);
+  const pc = getPlayerColor(data.playerName, data.playerIdx);
 
   // Player name
   const nameEl = document.getElementById('tso-player-name');
@@ -808,13 +727,12 @@ function _showTurnSummaryOverlay(data, ms) {
   nameEl.style.color = pc.color;
   nameEl.style.textShadow = '0 0 30px ' + pc.glow;
 
-  // Darts row — with per-dart type tag for cricket
-  const dartsRow  = document.getElementById('tso-darts-row');
+  // Darts row
+  const dartsRow = document.getElementById('tso-darts-row');
   dartsRow.innerHTML = '';
-  const dartList  = data.darts.slice(0, 3);
-  const ttvResult = quality.ttv;
+  const dartList = data.darts.slice(0, 3);
   while (dartList.length < 3) dartList.push(null);
-  dartList.forEach((d, idx) => {
+  dartList.forEach((d) => {
     const card = document.createElement('div');
     card.className = 'tso-dart-card';
     if (!d) {
@@ -828,14 +746,6 @@ function _showTurnSummaryOverlay(data, ms) {
     labelLine.innerHTML = `<span class="tso-dart-word">${word}</span>${num ? `<span class="tso-dart-num">${num}</span>` : ''}`;
     card.appendChild(labelLine);
     if (data.gameType === 'cricket') {
-      // Type tag from TTV analysis
-      if (ttvResult && ttvResult.dartResults[idx]) {
-        const dr  = ttvResult.dartResults[idx];
-        const tag = document.createElement('div');
-        tag.className = 'tso-dart-tag tso-dart-tag--' + dr.type.toLowerCase();
-        tag.textContent = dr.label;
-        card.appendChild(tag);
-      }
       if (d.pointsScored > 0) {
         card.classList.add('scored');
         const pts = document.createElement('div');
@@ -878,26 +788,6 @@ function _showTurnSummaryOverlay(data, ms) {
     }
   }
 
-  // Analysis row: show TTV score for cricket
-  const analysisRow = document.getElementById('tso-analysis-row');
-  analysisRow.innerHTML = '';
-  if (data.gameType === 'cricket' && ttvResult) {
-    const ttv = document.createElement('div');
-    ttv.className = 'tso-ttv-line';
-    ttv.textContent = 'TURN VALUE: ' + ttvResult.totalWeight + ' / 45';
-    analysisRow.appendChild(ttv);
-  }
-
-  // Quality meter
-  const meterFill  = document.getElementById('tso-meter-fill');
-  const meterTitle = document.getElementById('tso-meter-title');
-  meterTitle.textContent = quality.label;
-  meterTitle.style.color = quality.color;
-  meterTitle.style.textShadow = '0 0 20px ' + quality.glow;
-  meterFill.style.setProperty('--meter-color', quality.color);
-  meterFill.style.setProperty('--meter-glow',  quality.glow);
-  meterFill.style.width = '0%';
-
   // Next Up panel
   const nextUpEl   = document.getElementById('tso-next-up');
   const nextNameEl = document.getElementById('tso-next-name');
@@ -908,16 +798,11 @@ function _showTurnSummaryOverlay(data, ms) {
     const npc      = getPlayerColor(nextName, nextIdx);
     nextNameEl.textContent  = nextName.toUpperCase();
     nextNameEl.style.color  = npc.color;
-    nextNameEl.style.textShadow = '0 0 40px ' + npc.glow;
+    nextNameEl.style.textShadow = '0 0 60px ' + npc.glow;
     nextUpEl.style.display  = 'flex';
   } else if (nextUpEl) {
     nextUpEl.style.display  = 'none';
   }
-
-  // Particles
-  const particlesEl = document.getElementById('tso-particles');
-  particlesEl.innerHTML = '';
-  if (quality.level >= 4) _spawnTurnParticles(particlesEl, quality, pc);
 
   // Embedded remove-darts countdown
   const rdoMs = ms || LOCKOUT_MS;
@@ -930,7 +815,6 @@ function _showTurnSummaryOverlay(data, ms) {
     void ring.offsetWidth;
     ring.style.animation = `rdo-drain ${rdoMs / 1000}s linear forwards`;
   }
-  // Remove previous interval if any
   if (app._lockoutInterval) { clearInterval(app._lockoutInterval); app._lockoutInterval = null; }
   let remaining = secs;
   app._lockoutInterval = setInterval(() => {
@@ -944,14 +828,11 @@ function _showTurnSummaryOverlay(data, ms) {
   }, 1000);
 
   el.classList.add('visible');
-  setTimeout(() => { meterFill.style.width = quality.pct + '%'; }, 80);
 }
 
 function _hideTurnSummaryOverlay() {
   const el = document.getElementById('turn-summary-overlay');
   if (el) el.classList.remove('visible');
-  const p = document.getElementById('tso-particles');
-  if (p) p.innerHTML = '';
 }
 
 // ---------------------------------------------------------------------------
@@ -1304,7 +1185,6 @@ function updatePlayerCards01() {
       void card.offsetWidth; // force reflow to restart animation
       card.classList.add('player-switched');
       setTimeout(() => card.classList.remove('player-switched'), 750);
-      showTurnAnnouncement(p.name, i);
     }
 
     card.querySelector('.card-name').textContent = p.name;
@@ -1544,9 +1424,8 @@ function updateCricketSide() {
     lbl.style.textShadow = '';
   }
 
-  // Detect player change → trigger turn announcement
+  // Track player index change for animation purposes
   if (s.phase !== 'won' && s.currentPlayerIndex !== app._prevActiveCkt) {
-    showTurnAnnouncement(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex);
     app._prevActiveCkt = s.currentPlayerIndex;
   }
 
@@ -1572,44 +1451,6 @@ function updateCricketSide() {
       cktNtbBar.style.setProperty('--pcg',   apc.glow);
       cktNtbBar.style.setProperty('--pcdim', apc.dim);
     }
-  }
-
-  // Featured last-throw display — only visible when the current player has thrown at least one dart
-  const lastResultEl = document.getElementById('ckt-last-result');
-  const lastPtsEl    = document.getElementById('ckt-last-pts');
-  const lastZone     = document.getElementById('ckt-last-throw-zone');
-  if (lastZone) lastZone.style.display = turn.darts.length > 0 ? '' : 'none';
-  if (lastResultEl && turn.darts.length > 0) {
-    const apc = (s.phase !== 'won')
-      ? getPlayerColor(s.players[s.currentPlayerIndex].name, s.currentPlayerIndex)
-      : (s.winner !== null ? getPlayerColor(s.players[s.winner].name, s.winner) : PLAYER_COLORS[0]);
-
-    const prevLastResult = lastResultEl.dataset.lastLabel || '';
-    const lastDart = turn.darts[turn.darts.length - 1];
-    const label = lastDart.segment.label;
-
-    lastResultEl.textContent = formatDartLabel(label);
-    lastResultEl.style.opacity = '1';
-    if (lastDart.pointsScored > 0) {
-      lastResultEl.style.color = 'var(--green)';
-      lastResultEl.style.textShadow = '0 0 20px var(--green-glow)';
-      lastPtsEl.textContent = (app.game instanceof GameCutthroatCricket)
-        ? 'DEALT +' + lastDart.pointsScored
-        : '+' + lastDart.pointsScored + ' PTS';
-    } else {
-      lastResultEl.style.color = apc.color;
-      lastResultEl.style.textShadow = '0 0 20px ' + apc.glow;
-      lastPtsEl.textContent = '';
-    }
-    if (label !== prevLastResult && lastZone) {
-      lastZone.classList.remove('dart-zone-landed');
-      void lastZone.offsetWidth;
-      lastZone.classList.add('dart-zone-landed');
-      setTimeout(() => lastZone.classList.remove('dart-zone-landed'), 480);
-    }
-    lastResultEl.dataset.lastLabel = label;
-  } else if (lastResultEl) {
-    lastResultEl.dataset.lastLabel = '';
   }
 
   // Dart chips (vertical column)
@@ -1646,6 +1487,13 @@ function updateCricketSide() {
     chip.dataset.filled = isNowFilled ? '1' : '0';
   }
 
+  // Round display
+  const roundEl = document.getElementById('ckt-round-number');
+  if (roundEl) {
+    const numPlayers = s.players.length;
+    const round = Math.floor(s.totalTurns / numPlayers) + 1;
+    roundEl.textContent = round;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1716,22 +1564,9 @@ function handleDart(segment, bypassGuards = false) {
 
   } else if (app.game instanceof GameCricket) {
     const prevPlayerIdx = app.game.state.currentPlayerIndex;
-
-    // Capture pre-turn state on the first dart of each turn (needed for TTV analysis)
-    if (app.game.state.currentTurn.dartCount === 0) {
-      const sp = app.game.state;
-      app._cricketPreTurnState = {
-        playerMarks:   { ...sp.players[prevPlayerIdx].marks },
-        opponentMarks: sp.players
-          .filter((_, i) => i !== prevPlayerIdx)
-          .map(p => ({ marks: { ...p.marks }, score: p.score })),
-      };
-    }
-
     const result = app.game.throwDart(segment);
     const s = app.game.state;
 
-    // Start lockout before rendering so the turn announcement is suppressed
     if (s.phase !== 'won' && s.currentPlayerIndex !== prevPlayerIdx) {
       const lastEntry = s.history[0];
       startBoardLockout({
@@ -1742,9 +1577,7 @@ function handleDart(segment, bypassGuards = false) {
         gameType:     'cricket',
         isCutthroat:  app.game instanceof GameCutthroatCricket,
         pointsTotal:  lastEntry.darts.reduce((sum, d) => sum + (d.pointsScored || 0), 0),
-        preTurnState: app._cricketPreTurnState || null,
       });
-      app._cricketPreTurnState = null;
     }
 
     renderCricket();
@@ -2130,12 +1963,6 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('turn-summary-overlay').addEventListener('click', () => {
     if (!app._boardLocked) return;
     endBoardLockout();
-  });
-
-  // Tap anywhere on the turn announcement to dismiss early
-  document.getElementById('turn-announcement').addEventListener('click', () => {
-    document.getElementById('turn-announcement').classList.remove('visible');
-    if (_turnAnnTimeout) { clearTimeout(_turnAnnTimeout); _turnAnnTimeout = null; }
   });
 
   const saved = loadSavedGame();
