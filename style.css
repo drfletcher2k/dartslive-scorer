@@ -1219,6 +1219,23 @@ table.cricket-table {
 .cricket-dart-chip.scored .chip-number      { color: var(--green); }
 .cricket-dart-chip.scored .chip-dart-diamond { opacity: 1; }
 
+.cricket-dart-chip.bust-dart {
+  border-style: solid;
+  border-color: var(--red);
+  background: rgba(255,32,85,0.1);
+}
+.cricket-dart-chip.bust-dart .chip-multiplier  { color: var(--red); opacity: 0.9; font-size: clamp(14px, 2.8vw, 20px); }
+.cricket-dart-chip.bust-dart .chip-dart-diamond { opacity: 0.9; }
+
+.cricket-dart-chip.win-dart {
+  border-style: solid;
+  border-color: var(--yellow);
+  background: rgba(255,204,0,0.08);
+  box-shadow: 0 0 10px var(--yellow-glow);
+}
+.cricket-dart-chip.win-dart .chip-multiplier  { color: var(--yellow); opacity: 0.9; font-size: clamp(14px, 2.8vw, 20px); }
+.cricket-dart-chip.win-dart .chip-dart-diamond { opacity: 1; }
+
 .cricket-dart-chip.next-slot {
   border-style: solid;
   border-color: var(--accent);
@@ -1964,8 +1981,10 @@ table.cricket-table {
 
 .tso-darts-row {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
+  flex: 1;
 }
 
 .tso-dart-card {

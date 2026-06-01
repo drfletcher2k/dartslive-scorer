@@ -727,44 +727,36 @@ function _showTurnSummaryOverlay(data, ms) {
   nameEl.style.color = pc.color;
   nameEl.style.textShadow = '0 0 30px ' + pc.glow;
 
-  // Darts row
+  // Darts column — vertical chips matching cricket side panel
   const dartsRow = document.getElementById('tso-darts-row');
   dartsRow.innerHTML = '';
   const dartList = data.darts.slice(0, 3);
   while (dartList.length < 3) dartList.push(null);
+  const chipSvg = `<svg viewBox="0 0 190 58" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polygon points="30,29 0,5 17,29" fill="#cc1f35"/><polygon points="30,29 0,53 17,29" fill="#cc1f35"/><polygon points="30,29 10,13 22,29" fill="#f03050" opacity="0.75"/><polygon points="30,29 10,45 22,29" fill="#f03050" opacity="0.75"/><rect x="30" y="26.5" width="40" height="5" rx="2.5" fill="#3d5170"/><rect x="70" y="21" width="66" height="16" rx="8" fill="#b87c10"/><rect x="70" y="21" width="66" height="6" rx="4" fill="#e8a830" opacity="0.55"/><rect x="83" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/><rect x="93" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/><rect x="103" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/><rect x="113" y="21" width="2.5" height="16" rx="1" fill="#7a5008"/><rect x="136" y="23" width="12" height="12" rx="2" fill="#6e84a8"/><polygon points="148,29 190,29 148,26 148,32" fill="#c0cee0"/></svg>`;
   dartList.forEach((d) => {
-    const card = document.createElement('div');
-    card.className = 'tso-dart-card';
-    if (!d) {
-      card.innerHTML = '<span class="tso-dart-empty">—</span>';
-      dartsRow.appendChild(card);
-      return;
-    }
-    const { word, num } = parseDartLabel(d.segment.label);
-    const labelLine = document.createElement('div');
-    labelLine.className = 'tso-dart-label';
-    labelLine.innerHTML = `<span class="tso-dart-word">${word}</span>${num ? `<span class="tso-dart-num">${num}</span>` : ''}`;
-    card.appendChild(labelLine);
-    if (data.gameType === 'cricket') {
-      if (d.pointsScored > 0) {
-        card.classList.add('scored');
-        const pts = document.createElement('div');
-        pts.className = 'tso-dart-pts';
-        pts.textContent = (data.isCutthroat ? 'DEALT +' : '+') + d.pointsScored;
-        card.appendChild(pts);
-      }
-    } else {
-      if (d.bust)      card.classList.add('bust-dart');
-      else if (d.win)  card.classList.add('win-dart');
-      else if (d.counted) {
-        card.classList.add('filled');
-        const pts = document.createElement('div');
-        pts.className = 'tso-dart-pts';
-        pts.textContent = d.segment.score;
-        card.appendChild(pts);
+    const chip = document.createElement('div');
+    chip.className = 'cricket-dart-chip';
+    let labelText = '—';
+    if (d) {
+      labelText = formatDartLabel(d.segment.label);
+      if (data.gameType === 'cricket') {
+        if (d.pointsScored > 0) {
+          chip.classList.add('scored');
+          labelText += '  ' + (data.isCutthroat ? 'DEALT +' : '+') + d.pointsScored;
+        } else {
+          chip.classList.add('filled');
+        }
+      } else {
+        if (d.bust)       chip.classList.add('bust-dart');
+        else if (d.win)   chip.classList.add('win-dart');
+        else if (d.counted) {
+          chip.classList.add('filled');
+          labelText += '  +' + d.segment.score;
+        }
       }
     }
-    dartsRow.appendChild(card);
+    chip.innerHTML = `<div class="chip-dart-diamond"><div class="chip-dart-svg-wrap">${chipSvg}</div></div><div class="chip-throw-text"><span class="chip-multiplier">${labelText}</span><span class="chip-number"></span></div>`;
+    dartsRow.appendChild(chip);
   });
 
   // Total line
