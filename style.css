@@ -980,7 +980,7 @@ table.cricket-table {
 .cricket-table .score-row td {
   font-family: var(--font-score);
   font-weight: 900;
-  font-size: 30px;
+  font-size: 60px;
   background: var(--surface);
   color: var(--yellow);
   letter-spacing: 0.5px;
@@ -2159,6 +2159,23 @@ table.cricket-table {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
   margin: 2px 0;
   flex-shrink: 0;
+}
+
+/* ── Between-throws chip overrides — much larger text for far-away readability ── */
+.tso-darts-row .cricket-dart-chip {
+  padding: 14px 20px;
+}
+.tso-darts-row .cricket-dart-chip .chip-multiplier {
+  font-size: clamp(28px, 5vw, 70px) !important;
+  letter-spacing: 3px;
+  line-height: 1;
+}
+.tso-darts-row .chip-dart-diamond {
+  width: 90px;
+  height: 90px;
+}
+.tso-darts-row .chip-dart-svg-wrap svg {
+  width: 120px;
 }
 
 /* ── Remove Darts label (inside bottom bar) ── */
