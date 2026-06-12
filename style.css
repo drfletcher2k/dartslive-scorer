@@ -1133,7 +1133,7 @@ table.cricket-table {
   background: var(--surface2);
   border: 1.5px dashed var(--border2);
   border-radius: 14px;
-  padding: 10px 14px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1145,8 +1145,8 @@ table.cricket-table {
 
 /* Diamond icon inside each chip — same construction as ckt-dart-diamond but smaller */
 .chip-dart-diamond {
-  width: 62px;
-  height: 62px;
+  width: 90px;
+  height: 90px;
   background: var(--bg);
   border-radius: 5px;
   transform: rotate(45deg);
@@ -1168,7 +1168,7 @@ table.cricket-table {
 }
 
 .chip-dart-svg-wrap svg {
-  width: 82px;
+  width: 120px;
   height: auto;
 }
 
@@ -1184,7 +1184,7 @@ table.cricket-table {
 
 .cricket-dart-chip .chip-multiplier {
   font-family: var(--font-score);
-  font-size: clamp(13px, 2.8vw, 20px);
+  font-size: clamp(28px, 5vw, 70px);
   font-weight: 800;
   color: var(--muted);
   letter-spacing: 2px;
@@ -1205,7 +1205,7 @@ table.cricket-table {
   border-style: solid;
   border-color: var(--border2);
 }
-.cricket-dart-chip.filled .chip-multiplier  { color: var(--text); opacity: 0.7; font-size: clamp(16px, 3.2vw, 23px); }
+.cricket-dart-chip.filled .chip-multiplier  { color: var(--text); opacity: 0.7; font-size: clamp(28px, 5vw, 70px); }
 .cricket-dart-chip.filled .chip-number      { color: var(--text); }
 .cricket-dart-chip.filled .chip-dart-diamond { opacity: 0.75; }
 
@@ -1215,7 +1215,7 @@ table.cricket-table {
   background: rgba(0,217,126,0.08);
   box-shadow: 0 0 10px var(--green-glow);
 }
-.cricket-dart-chip.scored .chip-multiplier  { color: var(--green); opacity: 0.8; font-size: clamp(16px, 3.2vw, 23px); }
+.cricket-dart-chip.scored .chip-multiplier  { color: var(--green); opacity: 0.8; font-size: clamp(28px, 5vw, 70px); }
 .cricket-dart-chip.scored .chip-number      { color: var(--green); }
 .cricket-dart-chip.scored .chip-dart-diamond { opacity: 1; }
 
@@ -1224,7 +1224,7 @@ table.cricket-table {
   border-color: var(--red);
   background: rgba(255,32,85,0.1);
 }
-.cricket-dart-chip.bust-dart .chip-multiplier  { color: var(--red); opacity: 0.9; font-size: clamp(16px, 3.2vw, 23px); }
+.cricket-dart-chip.bust-dart .chip-multiplier  { color: var(--red); opacity: 0.9; font-size: clamp(28px, 5vw, 70px); }
 .cricket-dart-chip.bust-dart .chip-dart-diamond { opacity: 0.9; }
 
 .cricket-dart-chip.win-dart {
@@ -1233,7 +1233,7 @@ table.cricket-table {
   background: rgba(255,204,0,0.08);
   box-shadow: 0 0 10px var(--yellow-glow);
 }
-.cricket-dart-chip.win-dart .chip-multiplier  { color: var(--yellow); opacity: 0.9; font-size: clamp(16px, 3.2vw, 23px); }
+.cricket-dart-chip.win-dart .chip-multiplier  { color: var(--yellow); opacity: 0.9; font-size: clamp(28px, 5vw, 70px); }
 .cricket-dart-chip.win-dart .chip-dart-diamond { opacity: 1; }
 
 .cricket-dart-chip.next-slot {
@@ -2161,21 +2161,9 @@ table.cricket-table {
   flex-shrink: 0;
 }
 
-/* ── Between-throws chip overrides — much larger text for far-away readability ── */
-.tso-darts-row .cricket-dart-chip {
-  padding: 14px 20px;
-}
+/* ── Between-throws chip overrides — wider letter spacing for far-away readability ── */
 .tso-darts-row .cricket-dart-chip .chip-multiplier {
-  font-size: clamp(28px, 5vw, 70px) !important;
   letter-spacing: 3px;
-  line-height: 1;
-}
-.tso-darts-row .chip-dart-diamond {
-  width: 90px;
-  height: 90px;
-}
-.tso-darts-row .chip-dart-svg-wrap svg {
-  width: 120px;
 }
 
 /* ── Remove Darts label (inside bottom bar) ── */
