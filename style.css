@@ -1133,7 +1133,7 @@ table.cricket-table {
   background: var(--surface2);
   border: 1.5px dashed var(--border2);
   border-radius: 14px;
-  padding: 10px 14px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1145,8 +1145,8 @@ table.cricket-table {
 
 /* Diamond icon inside each chip — same construction as ckt-dart-diamond but smaller */
 .chip-dart-diamond {
-  width: 62px;
-  height: 62px;
+  width: 90px;
+  height: 90px;
   background: var(--bg);
   border-radius: 5px;
   transform: rotate(45deg);
@@ -1168,7 +1168,7 @@ table.cricket-table {
 }
 
 .chip-dart-svg-wrap svg {
-  width: 82px;
+  width: 120px;
   height: auto;
 }
 
@@ -2161,21 +2161,9 @@ table.cricket-table {
   flex-shrink: 0;
 }
 
-/* ── Between-throws chip overrides — much larger text for far-away readability ── */
-.tso-darts-row .cricket-dart-chip {
-  padding: 14px 20px;
-}
+/* ── Between-throws chip overrides — wider letter spacing for far-away readability ── */
 .tso-darts-row .cricket-dart-chip .chip-multiplier {
-  font-size: clamp(28px, 5vw, 70px) !important;
   letter-spacing: 3px;
-  line-height: 1;
-}
-.tso-darts-row .chip-dart-diamond {
-  width: 90px;
-  height: 90px;
-}
-.tso-darts-row .chip-dart-svg-wrap svg {
-  width: 120px;
 }
 
 /* ── Remove Darts label (inside bottom bar) ── */
