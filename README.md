@@ -184,3 +184,47 @@ python3 -m http.server 8080 --bind 0.0.0.0
 
 Open `http://<your-lan-ip>:8080/index.html` in Chrome on the tablet.
 Web Bluetooth works over LAN when the origin is a private IP (no HTTPS required for `192.168.x.x`).
+
+Note: this legacy static server has no `/api/*` routes, so the shared leaderboard and the
+LED ring integration below silently do nothing when the app is served this way — the
+leaderboard panel falls back to browser `localStorage` instead. If the leaderboard looks
+empty, check which of the two serving methods is actually running.
+
+---
+
+## LED ring integration (Home Assistant)
+
+If a WLED-driven LED ring around the board is set up as a light entity in Home Assistant,
+the server can trigger it on three events: no game in progress, a game in progress, and a
+winner announced. The app never talks to WLED directly — it only calls Home Assistant,
+and HA runs a script that activates the right WLED preset.
+
+### One-time HA setup
+
+Create three HA scripts that each activate a WLED preset on your ring's light entity
+(e.g. `light.dojo_wled_dartboard`):
+
+| Script entity_id | Should do |
+|---|---|
+| `script.dartboard_game_off` | Activate the WLED **GameOff** preset |
+| `script.dartboard_game_on` | Activate the WLED **GameOn** preset |
+| `script.dartboard_winner` | Activate the WLED **Winner** preset |
+
+Then create a [Long-Lived Access Token](https://www.home-assistant.io/docs/authentication/#your-account-profile)
+from your HA user profile.
+
+### Server setup
+
+On the PC running `server.js`, copy `.env.example` to `.env` and fill in:
+
+```
+HA_BASE_URL=http://homeassistant.local:8123
+HA_TOKEN=<your long-lived access token>
+```
+
+Restart the server (`npm start` / `pm2 restart dartslive`). `.env` is gitignored and never
+committed. If `HA_BASE_URL`/`HA_TOKEN` are left blank, the LED integration is skipped
+entirely and the app behaves exactly as before.
+
+Only override `HA_SCRIPT_GAME_ON` / `HA_SCRIPT_GAME_OFF` / `HA_SCRIPT_WINNER` in `.env` if
+you named the HA scripts differently than the table above.

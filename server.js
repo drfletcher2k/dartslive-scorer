@@ -8,6 +8,16 @@ const path       = require('path');
 const os         = require('os');
 const { execFileSync } = require('child_process');
 
+// Load .env (KEY=VALUE per line) without adding a dependency. Existing
+// process.env values (e.g. set by pm2/systemd) always win.
+const ENV_FILE = path.join(__dirname, '.env');
+if (fs.existsSync(ENV_FILE)) {
+  fs.readFileSync(ENV_FILE, 'utf8').split('\n').forEach(line => {
+    const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2];
+  });
+}
+
 const app        = express();
 const PORT       = 3180;
 const DATA_DIR   = path.join(__dirname, 'data');
@@ -15,6 +25,17 @@ const DATA_FILE  = path.join(DATA_DIR, 'history.json');
 const CERT_DIR   = path.join(__dirname, 'certs');
 const CERT_FILE  = path.join(CERT_DIR, 'cert.pem');
 const KEY_FILE   = path.join(CERT_DIR, 'key.pem');
+
+// ---------------------------------------------------------------------------
+// Home Assistant LED ring integration (optional — no-ops if unconfigured)
+// ---------------------------------------------------------------------------
+const HA_BASE_URL = process.env.HA_BASE_URL || '';
+const HA_TOKEN    = process.env.HA_TOKEN    || '';
+const HA_SCRIPTS   = {
+  game_on:  process.env.HA_SCRIPT_GAME_ON  || 'script.dartboard_game_on',
+  game_off: process.env.HA_SCRIPT_GAME_OFF || 'script.dartboard_game_off',
+  winner:   process.env.HA_SCRIPT_WINNER   || 'script.dartboard_winner',
+};
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -39,6 +60,30 @@ app.post('/api/history', (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Fire-and-forget: tell Home Assistant to run the script for this LED event.
+// Always responds fast so a slow/unreachable HA never stalls the scoring UI.
+app.post('/api/led', (req, res) => {
+  const entityId = HA_SCRIPTS[req.body.event];
+  if (!entityId) return res.status(400).json({ error: 'unknown event' });
+
+  res.json({ ok: true });
+  if (!HA_BASE_URL || !HA_TOKEN) return; // LED integration not configured
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  fetch(`${HA_BASE_URL}/api/services/script/turn_on`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HA_TOKEN}`,
+      'Content-Type':  'application/json',
+    },
+    body: JSON.stringify({ entity_id: entityId }),
+    signal: controller.signal,
+  })
+    .catch(e => console.error(`HA LED call failed (${req.body.event}):`, e.message))
+    .finally(() => clearTimeout(timeout));
 });
 
 // ---------------------------------------------------------------------------
