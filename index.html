@@ -897,6 +897,18 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById('screen-' + name);
   if (el) el.classList.add('active');
+  notifyLed(name === 'setup' ? 'game_off' : 'game_on');
+}
+
+// Tell the LED ring (via Home Assistant) about a game-state change.
+// No-op if there's no server backing this page, or if HA isn't configured server-side.
+function notifyLed(event) {
+  if (!USE_API) return;
+  fetch('/api/led', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event }),
+  }).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------
@@ -1722,22 +1734,35 @@ function spawnWinParticles() {
   }
 }
 
+const WIN_AUTO_DISMISS_MS = 20000;
+let winAutoDismissTimer = null;
+
 function showWin(playerName) {
   clearLockout();
   document.getElementById('win-name').textContent = playerName;
   document.getElementById('win-overlay').classList.add('visible');
   spawnWinParticles();
+  notifyLed('winner');
+
+  clearTimeout(winAutoDismissTimer);
+  winAutoDismissTimer = setTimeout(dismissWinOverlayToSetup, WIN_AUTO_DISMISS_MS);
+}
+
+function dismissWinOverlayToSetup() {
+  document.getElementById('win-overlay').classList.remove('visible');
+  localStorage.removeItem(LS_KEY);
+  app.game = null;
+  showScreen('setup');
 }
 
 function initWinOverlay() {
   document.getElementById('btn-win-newgame').addEventListener('click', () => {
-    document.getElementById('win-overlay').classList.remove('visible');
-    localStorage.removeItem(LS_KEY);
-    app.game = null;
-    showScreen('setup');
+    clearTimeout(winAutoDismissTimer);
+    dismissWinOverlayToSetup();
   });
 
   document.getElementById('btn-win-rematch').addEventListener('click', () => {
+    clearTimeout(winAutoDismissTimer);
     document.getElementById('win-overlay').classList.remove('visible');
     startRematch();
   });
@@ -1833,6 +1858,7 @@ function escHtml(str) {
 // Cricket leaderboard — persistent win history
 // ---------------------------------------------------------------------------
 const USE_API = location.protocol !== 'file:';
+let lastHistoryFetchFailed = false;
 const LS_HISTORY_MIGRATED_KEY = 'dartslive-cricket-history-migrated';
 
 // One-time migration: before the shared server existed, cricket history was
@@ -1863,9 +1889,14 @@ async function loadCricketHistory() {
   if (USE_API) {
     try {
       const r = await fetch('/api/history');
+      lastHistoryFetchFailed = !r.ok;
       return r.ok ? await r.json() : [];
-    } catch (e) { return []; }
+    } catch (e) {
+      lastHistoryFetchFailed = true;
+      return [];
+    }
   }
+  lastHistoryFetchFailed = false;
   try {
     const raw = localStorage.getItem(LS_HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -1939,6 +1970,10 @@ async function renderLeaderboard() {
   if (rows.length === 0) {
     tbody.innerHTML = '';
     empty.style.display = '';
+    empty.textContent = lastHistoryFetchFailed
+      ? "Can't reach server — leaderboard unavailable"
+      : 'No games recorded yet';
+    empty.classList.toggle('lb-error', lastHistoryFetchFailed);
     return;
   }
 
