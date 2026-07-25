@@ -1833,6 +1833,31 @@ function escHtml(str) {
 // Cricket leaderboard — persistent win history
 // ---------------------------------------------------------------------------
 const USE_API = location.protocol !== 'file:';
+const LS_HISTORY_MIGRATED_KEY = 'dartslive-cricket-history-migrated';
+
+// One-time migration: before the shared server existed, cricket history was
+// kept per-browser in localStorage. When serving over the API those old games
+// were no longer counted, so the leaderboard lost all pre-server history.
+// Push any un-migrated local records into the shared server exactly once.
+async function migrateLocalHistoryToServer() {
+  if (!USE_API) return;
+  try {
+    if (localStorage.getItem(LS_HISTORY_MIGRATED_KEY)) return;
+    const raw = localStorage.getItem(LS_HISTORY_KEY);
+    const local = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(local) && local.length) {
+      for (const record of local) {
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record)
+        });
+      }
+    }
+    // Mark done even when there was nothing to migrate, so we never re-scan.
+    localStorage.setItem(LS_HISTORY_MIGRATED_KEY, '1');
+  } catch (e) {}
+}
 
 async function loadCricketHistory() {
   if (USE_API) {
@@ -1944,7 +1969,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initCricketScreen();
   initManualModal();
   initWinOverlay();
-  renderLeaderboard();
+  migrateLocalHistoryToServer().then(renderLeaderboard);
 
   // Tap to dismiss the remove-darts lockout overlay early
   document.getElementById('remove-darts-overlay').addEventListener('click', () => {
