@@ -1734,23 +1734,35 @@ function spawnWinParticles() {
   }
 }
 
+const WIN_AUTO_DISMISS_MS = 20000;
+let winAutoDismissTimer = null;
+
 function showWin(playerName) {
   clearLockout();
   document.getElementById('win-name').textContent = playerName;
   document.getElementById('win-overlay').classList.add('visible');
   spawnWinParticles();
   notifyLed('winner');
+
+  clearTimeout(winAutoDismissTimer);
+  winAutoDismissTimer = setTimeout(dismissWinOverlayToSetup, WIN_AUTO_DISMISS_MS);
+}
+
+function dismissWinOverlayToSetup() {
+  document.getElementById('win-overlay').classList.remove('visible');
+  localStorage.removeItem(LS_KEY);
+  app.game = null;
+  showScreen('setup');
 }
 
 function initWinOverlay() {
   document.getElementById('btn-win-newgame').addEventListener('click', () => {
-    document.getElementById('win-overlay').classList.remove('visible');
-    localStorage.removeItem(LS_KEY);
-    app.game = null;
-    showScreen('setup');
+    clearTimeout(winAutoDismissTimer);
+    dismissWinOverlayToSetup();
   });
 
   document.getElementById('btn-win-rematch').addEventListener('click', () => {
+    clearTimeout(winAutoDismissTimer);
     document.getElementById('win-overlay').classList.remove('visible');
     startRematch();
   });
